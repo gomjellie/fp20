@@ -58,3 +58,7 @@ a.out <파일명> <오프셋> <삭제 바이트 수>
 - 압축한 파일은 반드시 학번_1.zip (예시 20061084_1.zip)과 같이 작성하며, 여기서 1은 첫 번째 과제임을 의미함
 
 **채점 프로그램상 오류가 날 수 있으니 꼭 위 사항을 준수하기 바라며, 이를 따르지 않아서 발행하는 불이익은 본인이 책임져야 함**
+
+과제를 해결할때 참고한 사이트 
+
+https://www.geeksforgeeks.org/input-output-system-calls-c-create-open-close-read-write/
