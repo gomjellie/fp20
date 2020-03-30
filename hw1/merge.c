@@ -20,14 +20,11 @@ int main(int argc, char *argv[]) {
         printf("Can't open file %s\n", argv[2]);
     }
 
-    while (read(fd2, &c, 1) > 0) {
+    while (read(fd2, &c, 1) > 0)
         write(fd1, &c, 1);
-    }
 
-    if (close(fd1) == -1) {
-        perror("Error: ");
-    }
-    if (close(fd2) == -1) {
-        perror("Error: ");
-    }
+    if (close(fd1) == -1) perror("Error: ");
+    if (close(fd2) == -1) perror("Error: ");
+    
+    return 0;
 }

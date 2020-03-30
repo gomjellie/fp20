@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
         write(1, &c, 1);
     }
 
-    if (close(fd) == -1) {
-        perror("Error: ");
-    }
+    if (close(fd) == -1) perror("Error: ");
+
+    return 0;
 }
