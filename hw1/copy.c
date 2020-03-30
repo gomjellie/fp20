@@ -22,12 +22,12 @@ int main(int argc, char* argv[]) {
 
     if (src_fd == -1) {
         printf("Error Number %d\n", errno);
-        perror("failed to open read_fd");
+        perror("Error: ");
     }
 
     if (tar_fd == -1) {
         printf("Error Number %d\n", errno);
-        perror("failed to open write_fd");
+        perror("Error: ");
     }
 
     lseek(src_fd, 0, SEEK_SET);
@@ -39,10 +39,10 @@ int main(int argc, char* argv[]) {
     }
 
     if (close(src_fd) ==  -1) {
-        perror("failed to close read_fd");
+        perror("Error: ");
     }
     if (close(tar_fd) == -1) {
-        perror("failed to close write_fd");
+        perror("Error: ");
     }
 
     return 0;
