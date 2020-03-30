@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
         printf("Can't open file %s\n", argv[2]);
     }
 
-    while (read(fd2, &c, 1) != 0) {
+    while (read(fd2, &c, 1) > 0) {
         write(fd1, &c, 1);
     }
 }
