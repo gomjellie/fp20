@@ -4,13 +4,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
-#include <errno.h>
-extern int errno;
 
-#define FILENAME   1
-#define OFFSET     2
-#define READ_BYTE  3
-
+enum args {
+    FILENAME = 1,
+    OFFSET,
+    READ_BYTE,
+};
 
 int main(int argc, char *argv[]) {
     int fd;
