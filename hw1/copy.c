@@ -4,7 +4,7 @@
 #include <errno.h>
 extern int errno;
 
-#define BUF_SIZE 3
+#define BUF_SIZE 100
 #define OVERFLOW_PADDING 8
 #define SRC_FILENAME 1
 #define TAR_FILENAME 2
