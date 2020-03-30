@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
     lfd = open("left", O_RDWR | O_CREAT | O_TRUNC, 0644);
     rfd = open("right", O_RDWR | O_CREAT | O_TRUNC, 0644);
     
-    while ((read(ofd, buf, 1)) > 0 && len_cnt < atol(argv[OFFSET])) {
+    while ((read(ofd, buf, 1)) > 0 && len_cnt <= atol(argv[OFFSET])) {
         len_cnt ++;
         write(lfd, buf, 1);
     }
