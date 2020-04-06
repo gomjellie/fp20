@@ -2,63 +2,63 @@
 #include <sys/types.h>
 #include <time.h>
 #include <stdlib.h>
-//ÇÊ¿äÇÏ¸é header file Ãß°¡ °¡´É
+//í•„ìš”í•˜ë©´ header file ì¶”ê°€ ê°€ëŠ¥
 
 
-#define SUFFLE_NUM	10000	// ÀÌ °ªÀº ¸¶À½´ë·Î ¼öÁ¤ÇÒ ¼ö ÀÖÀ½
+#define SUFFLE_NUM    10000   // ì´ ê°’ì€ ë§ˆìŒëŒ€ë¡œ ìˆ˜ì •í•  ìˆ˜ ìˆìŒ
 
 void GenRecordSequence(int *list, int n);
 void swap(int *a, int *b);
-// ÇÊ¿äÇÑ ÇÔ¼ö°¡ ÀÖÀ¸¸é ´õ Ãß°¡ÇÒ ¼ö ÀÖÀ½
+// í•„ìš”í•œ í•¨ìˆ˜ê°€ ìˆìœ¼ë©´ ë” ì¶”ê°€í•  ìˆ˜ ìˆìŒ
 
 //
-// argv[1]: ·¹ÄÚµå ÆÄÀÏ¸í
+// argv[1]: ë ˆì½”ë“œ íŒŒì¼ëª…
 //
 int main((int argc, char **argv)
 {
-	int *read_order_list;
-	int num_of_records;
+    int *read_order_list;
+    int num_of_records;
 
-	// ¾Æ·¡ ÇÔ¼ö¸¦ ½ÇÇàÇÏ¸é 'read_order_list' ¹è¿­¿¡ ÃßÈÄ ·£´ıÇÏ°Ô ÀĞ¾î¾ß ÇÒ ·¹ÄÚµå ¹øÈ£µéÀÌ ¼ø¼­´ë·Î ³ª¿­µÇ¾î ÀúÀåµÊ
-            // 'num_of_records'´Â ·¹ÄÚµå ÆÄÀÏ¿¡ ÀúÀåµÇ¾î ÀÖ´Â ÀüÃ¼ ·¹ÄÚµåÀÇ ¼ö¸¦ ÀÇ¹ÌÇÔ
-	GenRecordSequence(read_order_list, num_of_records);
-
-
-	// 'read_order_list'¸¦ ÀÌ¿ëÇÏ¿© Ç¥ÁØ ÀÔ·ÂÀ¸·Î ¹ŞÀº ·¹ÄÚµå ÆÄÀÏ·ÎºÎÅÍ ·¹ÄÚµå¸¦ random ÇÏ°Ô ÀĞ¾îµéÀÌ°í,
-            // ÀÌ¶§ °É¸®´Â ½Ã°£À» ÃøÁ¤ÇÏ´Â ÄÚµå ±¸ÇöÇÔ
+    // ì•„ë˜ í•¨ìˆ˜ë¥¼ ì‹¤í–‰í•˜ë©´ 'read_order_list' ë°°ì—´ì— ì¶”í›„ ëœë¤í•˜ê²Œ ì½ì–´ì•¼ í•  ë ˆì½”ë“œ ë²ˆí˜¸ë“¤ì´ ìˆœì„œëŒ€ë¡œ ë‚˜ì—´ë˜ì–´ ì €ì¥ë¨
+            // 'num_of_records'ëŠ” ë ˆì½”ë“œ íŒŒì¼ì— ì €ì¥ë˜ì–´ ìˆëŠ” ì „ì²´ ë ˆì½”ë“œì˜ ìˆ˜ë¥¼ ì˜ë¯¸í•¨
+    GenRecordSequence(read_order_list, num_of_records);
 
 
-	return 0;
+    // 'read_order_list'ë¥¼ ì´ìš©í•˜ì—¬ í‘œì¤€ ì…ë ¥ìœ¼ë¡œ ë°›ì€ ë ˆì½”ë“œ íŒŒì¼ë¡œë¶€í„° ë ˆì½”ë“œë¥¼ random í•˜ê²Œ ì½ì–´ë“¤ì´ê³ ,
+            // ì´ë•Œ ê±¸ë¦¬ëŠ” ì‹œê°„ì„ ì¸¡ì •í•˜ëŠ” ì½”ë“œ êµ¬í˜„í•¨
+
+
+    return 0;
 }
 
 void GenRecordSequence(int *list, int n)
 {
-	int i, j, k;
+    int i, j, k;
 
-	srand((unsigned int)time(0));
+    srand((unsigned int)time(0));
 
-	for(i=0; i<n; i++)
-	{
-		list[i] = i;
-	}
-	
-	for(i=0; i<SUFFLE_NUM; i++)
-	{
-		j = rand() % n;
-		k = rand() % n;
-		swap(&list[j], &list[k]);
-	}
+    for(i=0; i<n; i++)
+    {
+        list[i] = i;
+    }
+    
+    for(i=0; i<SUFFLE_NUM; i++)
+    {
+        j = rand() % n;
+        k = rand() % n;
+        swap(&list[j], &list[k]);
+    }
 
-	return;
+    return;
 }
 
 void swap(int *a, int *b)
 {
-	int tmp;
+    int tmp;
 
-	tmp = *a;
-	*a = *b;
-	*b = tmp;
+    tmp = *a;
+    *a = *b;
+    *b = tmp;
 
-	return;
+    return;
 }
