@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
     
     gettimeofday(&endTime, NULL);
     diffTime = (endTime.tv_sec - startTime.tv_sec) * 1000 * 1000 + (endTime.tv_usec - startTime.tv_usec);
-    printf("timecost: %.0f us", diffTime);
+    printf("#records: %d timecost: %.0f us", num_of_records, diffTime);
     
     return 0;
 }
