@@ -10,7 +10,7 @@
 
 
 #define REC_SIZE 100
-#define SUFFLE_NUM 10000   // 이 값은 마음대로 수정할 수 있음
+#define SHUFFLE_NUM 320000   // 이 값은 마음대로 수정할 수 있음
 #define BUF_SIZE 100
 #define BUF_PADD 32
 
@@ -22,11 +22,7 @@ void GenRecordSequence(int *list, int n);
 void swap(int *a, int *b);
 int get_file_size(const char* filename);
 void rread(const char* filename, const int* order_list, int rec_len);
-// 필요한 함수가 있으면 더 추가할 수 있음
 
-//
-// argv[1]: 레코드 파일명
-//
 int main(int argc, char **argv) {
     int num_of_records = get_file_size(argv[FILENAME]) / REC_SIZE;
     int* read_order_list = (int*) malloc(sizeof(int) * num_of_records);
@@ -54,7 +50,7 @@ void GenRecordSequence(int *list, int n) {
         list[i] = i;
     }
     
-    for(int i = 0; i < SUFFLE_NUM; i++) {
+    for(int i = 0; i < SHUFFLE_NUM; i++) {
         int j = rand() % n;
         int k = rand() % n;
         swap(&list[j], &list[k]);
