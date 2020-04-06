@@ -17,14 +17,13 @@ void sread(char* source_filename) {
     char buf[BUF_SIZE + BUF_PADD];
     int src_fd;
     src_fd = open(source_filename, O_RDONLY);
-    if (src_fd < 0) {perror("Error"); exit(1);}
+    if (src_fd < 0) { perror("Error"); exit(1); }
 
     size_t size = 0;
-    while ((size = read(src_fd, buf, BUF_SIZE)) > 0){
-        write(1, buf, size);
+    while ((size = read(src_fd, buf, BUF_SIZE)) > 0) {
+        // write(1, buf, size);
     }
-    if (close(src_fd) == -1){perror("Error"); exit(1);}
-    puts("");
+    if (close(src_fd) == -1) { perror("Error"); exit(1); }
 }
 
 int main(int argc, char **argv) {
