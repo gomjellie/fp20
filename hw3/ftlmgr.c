@@ -1,8 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "flash.h"
 // 필요한 경우 헤더파일을 추가한다
+
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 FILE *flashfp;    // fdevicedriver.c에서 사용
 
@@ -25,9 +29,11 @@ enum args {
 };
 
 int dd_write(int ppn, char *pagebuf);
+int dd_read(int ppn, char *pagebuf);
+
 void create_flash_memory(const char* flash_file, int block_num);
 void write_page(const char* flash_file, int ppn, const char* sector_data, const char* spare_data);
-void read_page(void);
+void read_page(const char* flash_file, int ppn);
 void erase_block(void);
 
 int main(int argc, char *argv[])
@@ -43,6 +49,8 @@ int main(int argc, char *argv[])
             create_flash_memory(argv[FLASHFILE], atoi(argv[BLOCK_NUM])); break;
         case 'w':
             write_page(argv[FLASHFILE], atoi(argv[PPN]), argv[SECTOR_DATA], argv[SPARE_DATA]); break;
+        case 'r':
+            read_page(argv[FLASHFILE], atoi(argv[PPN])); break;
         default:
             printf("invalid option %c", option); break;
     }
@@ -57,7 +65,7 @@ void create_flash_memory(const char * flash_file, int block_num) {
     */
     printf("flash_file : %s, block_num : %d", flash_file, block_num);
 
-    flashfp = fopen(flash_file, "w+b");
+    flashfp = fopen(flash_file, "r+");
     if (flashfp == NULL) {
         perror("Error"); exit(1);
     }
@@ -75,26 +83,50 @@ void write_page(const char* flash_file, int ppn, const char* sector_data, const 
     /**
     페이지 쓰기: pagebuf의 섹터와 스페어에 각각 입력된 데이터를 정확히 저장하고 난 후 해당 인터페이스를 호출한다
     */
-    printf("flash_file: %s ppn: %d, sector_data: %s, spare_data: %s\n", flash_file, ppn, sector_data, spare_data);
     char page_buff[PAGE_SIZE];
     memset((void *)page_buff, 0xFF, PAGE_SIZE);
     
-    flashfp = fopen(flash_file, "w+b");
+    flashfp = fopen(flash_file, "r+");
 
-    memcpy(page_buff, sector_data, SECTOR_SIZE);
-    memcpy(page_buff + SECTOR_SIZE, spare_data, SPARE_SIZE);
+    memcpy(page_buff, sector_data, MIN(strlen(sector_data), SECTOR_SIZE));
+    memcpy(page_buff + SECTOR_SIZE, spare_data, MIN(strlen(spare_data), SPARE_SIZE));
 
-    dd_write(ppn, page_buff);
+    int res = dd_write(ppn, page_buff);
+    if (res == -1) { perror("Error"); exit(1); }
 }
 
-void read_page(void) {
+void read_page(const char* flash_file, int ppn) {
     /**
     페이지 읽기: pagebuf를 인자로 사용하여 해당 인터페이스를 호출하여 페이지를 읽어 온 후 여기서 섹터 데이터와
     스페어 데이터를 분리해 낸다
     memset(), memcpy() 등의 함수를 이용하면 편리하다. 물론, 다른 방법으로 해결해도 무방하다.
     */
+    flashfp = fopen(flash_file, "r+");
+    
+    char page_buff[PAGE_SIZE];
+    char sector_buff[SECTOR_SIZE];
+    char spare_buff[SPARE_SIZE];
+    
+    int res = dd_read(ppn, page_buff);
+    if (res == -1) { perror("Error"); exit(1); }
+    
+    memcpy(sector_buff, page_buff, SECTOR_SIZE);
+    memcpy(spare_buff, page_buff + SECTOR_SIZE, SPARE_SIZE);
+
+    if (sector_buff[0] == (char)0xff && spare_buff[0] == (char)0xff) return;
+    for (int i = 0; i < SECTOR_SIZE; i++) {
+        if (sector_buff[i] == (char)0xff) break;
+
+        putchar(sector_buff[i]);
+    }
+    putchar(' ');
+    for (int i = 0; i < SPARE_SIZE; i++) {
+        if (spare_buff[i] == (char)0xff) break;
+
+        putchar(sector_buff[i]);
+    }
 }
 
 void erase_block(void) {
-
+    
 }
