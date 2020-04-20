@@ -15,13 +15,13 @@ FILE *flashfp;    // fdevicedriver.c에서 사용
 // 
 
 enum args {
-	OPTION = 1,
-	FLASHFILE = 2,
-	PPN = 3,
-	PBN = 3,
-	BLOCK_NUM = 3,
-	SECTOR_DATA = 4,
-	SPARE_DATA = 5,
+    OPTION = 1,
+    FLASHFILE = 2,
+    PPN = 3,
+    PBN = 3,
+    BLOCK_NUM = 3,
+    SECTOR_DATA = 4,
+    SPARE_DATA = 5,
 };
 
 int dd_write(int ppn, char *pagebuf);
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
             write_page(argv[FLASHFILE], atoi(argv[PPN]), argv[SECTOR_DATA], argv[SPARE_DATA]); break;
         default:
             printf("invalid option %c", option); break;
-	}
+    }
 
     return 0;
 }
