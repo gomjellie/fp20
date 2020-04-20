@@ -13,3 +13,6 @@ test_read:
 
 test_erase:
 	./run e flashfile 4
+
+clean:
+	rm -f flashfile run
