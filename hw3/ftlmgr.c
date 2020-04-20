@@ -14,18 +14,87 @@ FILE *flashfp;    // fdevicedriver.c에서 사용
 // 읽기와 쓰기는 페이지 단위이며 소거는 블록 단위이다.
 // 
 
+enum args {
+	OPTION = 1,
+	FLASHFILE = 2,
+	PPN = 3,
+	PBN = 3,
+	BLOCK_NUM = 3,
+	SECTOR_DATA = 4,
+	SPARE_DATA = 5,
+};
+
+int dd_write(int ppn, char *pagebuf);
+void create_flash_memory(const char* flash_file, int block_num);
+void write_page(const char* flash_file, int ppn, const char* sector_data, const char* spare_data);
+void read_page(void);
+void erase_block(void);
+
 int main(int argc, char *argv[])
 {    
     char sectorbuf[SECTOR_SIZE];
     char pagebuf[PAGE_SIZE];
     char *blockbuf;
     
-    // flash memory 파일 생성: 위에서 선언한 flashfp를 사용하여 flash 파일을 생성한다. 그 이유는 fdevicedriver.c에서 
-    //                 flashfp 파일포인터를 extern으로 선언하여 사용하기 때문이다.
-    // 페이지 쓰기: pagebuf의 섹터와 스페어에 각각 입력된 데이터를 정확히 저장하고 난 후 해당 인터페이스를 호출한다
-    // 페이지 읽기: pagebuf를 인자로 사용하여 해당 인터페이스를 호출하여 페이지를 읽어 온 후 여기서 섹터 데이터와
-    //                  스페어 데이터를 분리해 낸다
-    // memset(), memcpy() 등의 함수를 이용하면 편리하다. 물론, 다른 방법으로 해결해도 무방하다.
+    char option = argv[OPTION][0];
+    
+    switch (option) {
+        case 'c':
+            create_flash_memory(argv[FLASHFILE], atoi(argv[BLOCK_NUM])); break;
+        case 'w':
+            write_page(argv[FLASHFILE], atoi(argv[PPN]), argv[SECTOR_DATA], argv[SPARE_DATA]); break;
+        default:
+            printf("invalid option %c", option); break;
+	}
 
     return 0;
+}
+
+void create_flash_memory(const char * flash_file, int block_num) {
+    /**
+    flash memory 파일 생성: 위에서 선언한 flashfp를 사용하여 flash 파일을 생성한다. 그 이유는 fdevicedriver.c에서 
+    flashfp 파일포인터를 extern으로 선언하여 사용하기 때문이다.
+    */
+    printf("flash_file : %s, block_num : %d", flash_file, block_num);
+
+    flashfp = fopen(flash_file, "w+b");
+    if (flashfp == NULL) {
+        perror("Error"); exit(1);
+    }
+
+    char mem_buff[BLOCK_SIZE];
+    memset((void *)mem_buff, 0xFF, BLOCK_SIZE);
+    
+    for (int i = 0; i < block_num; i++) {
+        int ret = fwrite((void *)mem_buff, BLOCK_SIZE, 1, flashfp);
+        if (ret == -1) { perror("Error"); exit(1); }
+    }
+}
+
+void write_page(const char* flash_file, int ppn, const char* sector_data, const char* spare_data) {
+    /**
+    페이지 쓰기: pagebuf의 섹터와 스페어에 각각 입력된 데이터를 정확히 저장하고 난 후 해당 인터페이스를 호출한다
+    */
+    printf("flash_file: %s ppn: %d, sector_data: %s, spare_data: %s\n", flash_file, ppn, sector_data, spare_data);
+    char page_buff[PAGE_SIZE];
+    memset((void *)page_buff, 0xFF, PAGE_SIZE);
+    
+    flashfp = fopen(flash_file, "w+b");
+
+    memcpy(page_buff, sector_data, SECTOR_SIZE);
+    memcpy(page_buff + SECTOR_SIZE, spare_data, SPARE_SIZE);
+
+    dd_write(ppn, page_buff);
+}
+
+void read_page(void) {
+    /**
+    페이지 읽기: pagebuf를 인자로 사용하여 해당 인터페이스를 호출하여 페이지를 읽어 온 후 여기서 섹터 데이터와
+    스페어 데이터를 분리해 낸다
+    memset(), memcpy() 등의 함수를 이용하면 편리하다. 물론, 다른 방법으로 해결해도 무방하다.
+    */
+}
+
+void erase_block(void) {
+
 }
