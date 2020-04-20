@@ -30,11 +30,12 @@ enum args {
 
 int dd_write(int ppn, char *pagebuf);
 int dd_read(int ppn, char *pagebuf);
+int dd_erase(int pbn);
 
 void create_flash_memory(const char* flash_file, int block_num);
 void write_page(const char* flash_file, int ppn, const char* sector_data, const char* spare_data);
 void read_page(const char* flash_file, int ppn);
-void erase_block(void);
+void erase_block(const char* flash_file, int pbn);
 
 int main(int argc, char *argv[])
 {    
@@ -51,6 +52,8 @@ int main(int argc, char *argv[])
             write_page(argv[FLASHFILE], atoi(argv[PPN]), argv[SECTOR_DATA], argv[SPARE_DATA]); break;
         case 'r':
             read_page(argv[FLASHFILE], atoi(argv[PPN])); break;
+        case 'e':
+            erase_block(argv[FLASHFILE], atoi(argv[PBN])); break;
         default:
             printf("invalid option %c", option); break;
     }
@@ -65,7 +68,7 @@ void create_flash_memory(const char * flash_file, int block_num) {
     */
     printf("flash_file : %s, block_num : %d", flash_file, block_num);
 
-    flashfp = fopen(flash_file, "r+");
+    flashfp = fopen(flash_file, "w+");
     if (flashfp == NULL) {
         perror("Error"); exit(1);
     }
@@ -127,6 +130,8 @@ void read_page(const char* flash_file, int ppn) {
     }
 }
 
-void erase_block(void) {
-    
+void erase_block(const char* flash_file, int pbn) {
+    flashfp = fopen(flash_file, "r+");
+
+    dd_erase(pbn);
 }
