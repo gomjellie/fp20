@@ -66,8 +66,6 @@ void create_flash_memory(const char * flash_file, int block_num) {
     flash memory 파일 생성: 위에서 선언한 flashfp를 사용하여 flash 파일을 생성한다. 그 이유는 fdevicedriver.c에서 
     flashfp 파일포인터를 extern으로 선언하여 사용하기 때문이다.
     */
-    printf("flash_file : %s, block_num : %d", flash_file, block_num);
-
     flashfp = fopen(flash_file, "w+");
     if (flashfp == NULL) {
         perror("Error"); exit(1);
