@@ -12,14 +12,6 @@
 
 FILE *flashfp;    // fdevicedriver.c에서 사용
 
-//
-// 이 함수는 FTL의 역할 중 일부분을 수행하는데 물리적인 저장장치 flash memory에 Flash device driver를 이용하여 데이터를
-// 읽고 쓰거나 블록을 소거하는 일을 한다 (동영상 강의를 참조).
-// flash memory에 데이터를 읽고 쓰거나 소거하기 위해서 fdevicedriver.c에서 제공하는 인터페이스를
-// 호출하면 된다. 이때 해당되는 인터페이스를 호출할 때 연산의 단위를 정확히 사용해야 한다.
-// 읽기와 쓰기는 페이지 단위이며 소거는 블록 단위이다.
-// 
-
 enum args {
     OPTION = 1,
     FLASHFILE = 2,
@@ -48,8 +40,13 @@ enum bool is_empty_block(int pbn);
 int find_empty_block(int exception_block);
 long get_file_size();
 
-int main(int argc, char *argv[])
-{    
+int main(int argc, char *argv[]) {
+//
+// 이 함수는 FTL의 역할 중 일부분을 수행하는데 물리적인 저장장치 flash memory에 Flash device driver를 이용하여 데이터를
+// 읽고 쓰거나 블록을 소거하는 일을 한다 (동영상 강의를 참조).
+// flash memory에 데이터를 읽고 쓰거나 소거하기 위해서 fdevicedriver.c에서 제공하는 인터페이스를
+// 호출하면 된다. 이때 해당되는 인터페이스를 호출할 때 연산의 단위를 정확히 사용해야 한다.
+// 읽기와 쓰기는 페이지 단위이며 소거는 블록 단위이다.
     char sectorbuf[SECTOR_SIZE];
     char pagebuf[PAGE_SIZE];
     char *blockbuf;
