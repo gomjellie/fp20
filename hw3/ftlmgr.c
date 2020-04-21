@@ -119,12 +119,11 @@ void write_page(const char* flash_file, int ppn, const char* sector_data, const 
 
     printf("empty block : %d \n", empty_block);
 
-    char block_buff[BLOCK_SIZE];
+    char _page_buff[PAGE_SIZE];
 
     for (int i = 0; i < PAGE_NUM; i++) {
         int tar_page_number = pbn * PAGE_NUM + i;
         int empty_page_number = empty_block * PAGE_NUM + i;
-        char _page_buff[PAGE_SIZE];
         if (tar_page_number == ppn) {
             // memcpy(block_buff + i * PAGE_SIZE, page_buff, PAGE_SIZE);
             dd_write(empty_page_number, page_buff);
@@ -138,7 +137,6 @@ void write_page(const char* flash_file, int ppn, const char* sector_data, const 
     for (int i = 0; i < PAGE_NUM; i++) {
         int tar_page_number = pbn * PAGE_NUM + i;
         int empty_page_number = empty_block * PAGE_NUM + i;
-        char _page_buff[PAGE_SIZE];
 
         dd_read(empty_page_number, _page_buff);
         dd_write(tar_page_number, _page_buff);
