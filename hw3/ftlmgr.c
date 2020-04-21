@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include "flash.h"
 // 필요한 경우 헤더파일을 추가한다
 
@@ -28,6 +30,11 @@ enum args {
     SPARE_DATA = 5,
 };
 
+enum bool {
+    false = 0,
+    true = 1,
+};
+
 int dd_write(int ppn, char *pagebuf);
 int dd_read(int ppn, char *pagebuf);
 int dd_erase(int pbn);
@@ -36,6 +43,10 @@ void create_flash_memory(const char* flash_file, int block_num);
 void write_page(const char* flash_file, int ppn, const char* sector_data, const char* spare_data);
 void read_page(const char* flash_file, int ppn);
 void erase_block(const char* flash_file, int pbn);
+enum bool is_empty_page(int ppn);
+enum bool is_empty_block(int pbn);
+int find_empty_block(int exception_block);
+long get_file_size();
 
 int main(int argc, char *argv[])
 {    
@@ -92,8 +103,47 @@ void write_page(const char* flash_file, int ppn, const char* sector_data, const 
     memcpy(page_buff, sector_data, MIN(strlen(sector_data), SECTOR_SIZE));
     memcpy(page_buff + SECTOR_SIZE, spare_data, MIN(strlen(spare_data), SPARE_SIZE));
 
-    int res = dd_write(ppn, page_buff);
-    if (res == -1) { perror("Error"); exit(1); }
+    if (is_empty_page(ppn)) {
+        int res = dd_write(ppn, page_buff);
+        if (res == -1) { perror("Error"); exit(1); }
+        
+        return;
+    }
+
+    // ssd cannot overwrite
+    // implementation of in-place update
+    int pbn = ppn / PAGE_NUM;
+    int empty_block = find_empty_block(pbn);
+
+    if (empty_block == -1) { perror("Error"); exit(1); }
+
+    printf("empty block : %d \n", empty_block);
+
+    char block_buff[BLOCK_SIZE];
+
+    for (int i = 0; i < PAGE_NUM; i++) {
+        int tar_page_number = pbn * PAGE_NUM + i;
+        int empty_page_number = empty_block * PAGE_NUM + i;
+        char _page_buff[PAGE_SIZE];
+        if (tar_page_number == ppn) {
+            // memcpy(block_buff + i * PAGE_SIZE, page_buff, PAGE_SIZE);
+            dd_write(empty_page_number, page_buff);
+            continue;
+        }
+        dd_read(tar_page_number, _page_buff); // read from block where it was supposed to be over-written
+        dd_write(empty_page_number, _page_buff); // write at empty block
+    }
+    dd_erase(pbn);
+
+    for (int i = 0; i < PAGE_NUM; i++) {
+        int tar_page_number = pbn * PAGE_NUM + i;
+        int empty_page_number = empty_block * PAGE_NUM + i;
+        char _page_buff[PAGE_SIZE];
+
+        dd_read(empty_page_number, _page_buff);
+        dd_write(tar_page_number, _page_buff);
+    }
+    dd_erase(empty_block);
 }
 
 void read_page(const char* flash_file, int ppn) {
@@ -132,4 +182,39 @@ void erase_block(const char* flash_file, int pbn) {
     flashfp = fopen(flash_file, "r+");
 
     dd_erase(pbn);
+}
+
+enum bool is_empty_page(int ppn) { // physical page number
+    char page_buff[PAGE_SIZE];
+    
+    dd_read(ppn, page_buff);
+    if (page_buff[0] == (char)0xff && page_buff[SECTOR_SIZE] == (char)0xff)
+        return true;
+    return false;
+}
+
+enum bool is_empty_block(int pbn) { // physical block number
+    int base_ppn = pbn * PAGE_NUM;
+    for (int ppn = base_ppn; ppn < base_ppn + PAGE_NUM; ppn++) {
+        if (!is_empty_page(ppn)) return false;
+    }
+    return true;
+}
+
+int find_empty_block(int exception_block) {
+    int top_block = get_file_size() / BLOCK_SIZE;
+
+    for (int pbn = 0; pbn < top_block; pbn++) {
+        if (pbn == exception_block) continue;
+        if (is_empty_block(pbn)) return pbn;
+    }
+
+    return -1;
+}
+
+long get_file_size() {
+    fseek(flashfp, 0, SEEK_END);    // 파일 포인터를 파일의 끝으로 이동시킴
+    long size = ftell(flashfp);
+
+    return size;
 }
