@@ -117,8 +117,6 @@ void write_page(const char* flash_file, int ppn, const char* sector_data, const 
 
     if (empty_block == -1) { perror("Error"); exit(1); }
 
-    printf("empty block : %d \n", empty_block);
-
     char _page_buff[PAGE_SIZE];
 
     for (int i = 0; i < PAGE_NUM; i++) {
