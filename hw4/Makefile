@@ -9,12 +9,12 @@ LINK     = gcc -g
 
 DEPEND  = makedepend
 
-LINKOPTS = -lm -lnsl
+LINKOPTS = -lm #-lnsl
 #############################################
 
-SOURCES = ftlmgr.c fdevicedriver.c main.c
+SOURCES = ftlmgr.c fdevicedriver.c #main.c
 
-OBJECTS = ftlmgr.o fdevicedriver.o main.o
+OBJECTS = ftlmgr.o fdevicedriver.o #main.o
 
 .SUFFIXES : .C .c .o
 
