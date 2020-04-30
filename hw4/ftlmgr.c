@@ -26,7 +26,7 @@ typedef enum _bool {
     true,
 } bool;
 
-#define QUEUE_BUFF_SIZE DATAPAGES_PER_DEVICE + 1
+#define QUEUE_BUFF_SIZE DATAPAGES_PER_DEVICE + 30
 
 typedef struct _queue {
     int buff[QUEUE_BUFF_SIZE]; // [60 + 40]
@@ -71,37 +71,6 @@ void ftl_read(int lsn, char *sectorbuf) {
     return;
 }
 
-static void garbage_collect() {
-    static char page_buff[PAGE_SIZE];
-    bool pages_to_clean[DEVICE_SIZE] = {false, };
-    while (!queue_empty(&gbq)) {
-        int psn = queue_front(&gbq);
-        pages_to_clean[psn] = true;
-        queue_pop(&gbq);
-    }
-    
-    for (int pg = 0; pg < DEVICE_SIZE; pg += PAGES_PER_BLOCK) { // pg += 4 for every loop
-        if (!pages_to_clean[pg] && !pages_to_clean[pg + 1] && !pages_to_clean[pg + 2] && !pages_to_clean[pg + 3]) continue;
-        printf("pg : %d\n", pg);
-        memset(page_buff, 0, PAGE_SIZE);
-        for (int j = 0; j < PAGES_PER_BLOCK; j++) {// 0 ~ 4
-            if (!pages_to_clean[pg + j]) { // valid data(not garbage)
-                printf("not garbage: %d\n", pg + j);
-                dd_read(pg + j, page_buff);
-                int lsn = *((int *)(page_buff + SECTOR_SIZE));
-                sector_mapping_table[lsn] = free_block_idx + j;
-                printf("table[%d] = %d  ", lsn, free_block_idx + j); puts(page_buff);
-                dd_write(free_block_idx + j, page_buff);
-                continue;
-            }
-            // garbage -> clean page
-            queue_push(&psq, free_block_idx + j);
-        }
-        free_block_idx = pg;
-        dd_erase(free_block_idx / PAGES_PER_BLOCK);
-    }
-}
-
 void ftl_write(int lsn, char *sectorbuf) {
     byte page_buff[PAGE_SIZE];
     int ppn = sector_mapping_table[lsn];
@@ -121,8 +90,7 @@ void ftl_write(int lsn, char *sectorbuf) {
     return;
 }
 
-void ftl_print()
-{
+void ftl_print() {
     printf("lpn pp \n");
     for (int i = 0 ; i < DATAPAGES_PER_DEVICE; i++) printf("%d %d \n", i, sector_mapping_table[i]);
     printf("free block’s pbn=%d", free_block_idx);
@@ -170,4 +138,34 @@ void queue_show(queue* this) {
 
 bool queue_empty(queue* this) {
     return this->front == this->rear;
+}
+
+static void garbage_collect() {
+    static char page_buff[PAGE_SIZE];
+    bool pages_to_clean[DEVICE_SIZE] = {false, };
+    while (!queue_empty(&gbq)) {
+        int psn = queue_front(&gbq);
+        pages_to_clean[psn] = true;
+        queue_pop(&gbq);
+    }
+    
+    for (int pg = 0; pg < DEVICE_SIZE; pg += PAGES_PER_BLOCK) { // pg += 4 for every loop
+        if (!pages_to_clean[pg] && !pages_to_clean[pg + 1] && !pages_to_clean[pg + 2] && !pages_to_clean[pg + 3]) continue;
+        memset(page_buff, 0, PAGE_SIZE);
+        for (int j = 0; j < PAGES_PER_BLOCK; j++) {// 0 ~ 4
+            if (!pages_to_clean[pg + j]) { // valid data(not garbage)
+                // printf("not garbage: %d\n", pg + j);
+                dd_read(pg + j, page_buff);
+                int lsn = *((int *)(page_buff + SECTOR_SIZE));
+                sector_mapping_table[lsn] = free_block_idx + j;
+                // printf("table[%d] = %d  ", lsn, free_block_idx + j); puts(page_buff);
+                dd_write(free_block_idx + j, page_buff);
+                continue;
+            }
+            // garbage -> clean page
+            queue_push(&psq, free_block_idx + j);
+        }
+        free_block_idx = pg;
+        dd_erase(free_block_idx / PAGES_PER_BLOCK);
+    }
 }
