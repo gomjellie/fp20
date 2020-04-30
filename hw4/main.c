@@ -29,13 +29,21 @@ int main() {
     for (int i = 0; i < 60; i++) {
         memcpy(sector_buf[i], messages[i], strlen(messages[i]) + 1);
     }
-    flashfp = fopen("flash_file", "wr+");
+    flashfp = fopen("flash_file", "r+");
     create_flash_memory(BLOCKS_PER_DEVICE);
     ftl_open();
     ftl_write(2, sector_buf[2]);
     ftl_write(2, sector_buf[2]);
-    ftl_read(2, free_buf);
-    puts(free_buf);
+    ftl_write(2, sector_buf[2]);
+    ftl_write(2, sector_buf[2]);
+
+    for (int i = 0; i < 57; i++) {
+        ftl_write(i, sector_buf[i]);
+    }
+    for (int i = 0; i < 57; i++) {
+        ftl_read(i, free_buf);
+        printf("%d: %s\n", i, free_buf);
+    }
     ftl_print();
 }
 

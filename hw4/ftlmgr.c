@@ -12,6 +12,8 @@
 #include "sectormap.h"
 // 필요한 경우 헤더 파일을 추가하시오.
 
+#define DEVICE_SIZE (BLOCKS_PER_DEVICE * PAGES_PER_BLOCK)
+
 extern int dd_read(int ppn, char *pagebuf);
 extern int dd_write(int ppn, char *pagebuf);
 extern int dd_erase(int pbn);
@@ -23,7 +25,7 @@ typedef enum _bool {
     true,
 } bool;
 
-#define QUEUE_BUFF_SIZE DATAPAGES_PER_DEVICE + 40
+#define QUEUE_BUFF_SIZE DATAPAGES_PER_DEVICE + 1
 
 typedef struct _queue {
     int buff[QUEUE_BUFF_SIZE]; // [60 + 40]
@@ -39,14 +41,20 @@ void queue_push(queue* this, int val);
 bool queue_empty(queue* this);
 int queue_front(queue* this);
 int queue_size(queue* this);
+void queue_show(queue* this);
 
-int sector_mapping_table[DATAPAGES_PER_DEVICE]; // 디바이스에 있는 섹터 개수 - free_sector 개수
+static void garbage_collect();
+
+int sector_mapping_table[DATAPAGES_PER_DEVICE];
+int free_block_idx = DATAPAGES_PER_DEVICE;
 queue psq; // physical_sector_queue
+queue gbq; // garbage queue
 
 void ftl_open() {
     // flash memory를 처음 사용할 때 필요한 초기화 작업.
     // ftl_write(), ftl_read() 이전에 호출되어야한다.
     psq = new_queue();
+    gbq = new_queue();
     for (int i = 0; i < DATAPAGES_PER_DEVICE; i++) {
         sector_mapping_table[i] = -1;
         queue_push(&psq, i);
@@ -62,13 +70,45 @@ void ftl_read(int lsn, char *sectorbuf) {
     return;
 }
 
+static void garbage_collect() {
+    static char page_buff[PAGE_SIZE];
+    bool pages_to_clean[DEVICE_SIZE] = {false, };
+    while (!queue_empty(&gbq)) {
+        int psn = queue_front(&gbq);
+        pages_to_clean[psn] = true;
+        queue_pop(&gbq);
+    }
+    
+    for (int pg = 0; pg < DEVICE_SIZE; pg += PAGES_PER_BLOCK) { // pg += 4 for every loop
+        if (!pages_to_clean[pg] && !pages_to_clean[pg + 1] && !pages_to_clean[pg + 2] && !pages_to_clean[pg + 3]) continue;
+        
+        memset(page_buff, 0, PAGE_SIZE);
+        for (int j = 0; j < PAGES_PER_BLOCK; j++) {// 0 ~ 4
+            if (!pages_to_clean[pg + j]) { // valid data(not garbage)
+                dd_read(pg + j, page_buff);
+                int lsn = *((int *)page_buff + SECTOR_SIZE);
+                sector_mapping_table[lsn] = free_block_idx + j;
+                dd_write(free_block_idx + j, page_buff);
+                continue;
+            }
+            // garbage -> clean page
+            queue_push(&psq, free_block_idx + j);
+        }
+        dd_erase(free_block_idx / PAGES_PER_BLOCK);
+        free_block_idx = pg;
+    }
+}
+
 void ftl_write(int lsn, char *sectorbuf) {
     byte page_buff[PAGE_SIZE];
     byte spare_buff[SPARE_SIZE];
     int ppn = sector_mapping_table[lsn];
     if (ppn != -1)
-        queue_push(&psq, ppn); // 반납
+        queue_push(&gbq, ppn);
 
+    if (queue_size(&psq) == 0) // needs garbage collection
+        garbage_collect();
+    
     int priority_ppn = queue_front(&psq); queue_pop(&psq);
     memcpy(page_buff, sectorbuf, SECTOR_SIZE);
     *((int *)spare_buff) = lsn; // spare_buff에 lsn을 넣음.
@@ -83,7 +123,11 @@ void ftl_print()
 {
     printf("lpn pp \n");
     for (int i = 0 ; i < DATAPAGES_PER_DEVICE; i++) printf("%d %d \n", i, sector_mapping_table[i]);
-    printf("free block’s pbn=%d", queue_front(&psq));
+    printf("free block’s pbn=%d", free_block_idx);
+    puts("\ngarbage queue");
+    queue_show(&gbq);
+    puts("physical sector queue");
+    queue_show(&psq);
     return;
 }
 
