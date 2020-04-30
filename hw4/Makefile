@@ -12,9 +12,9 @@ DEPEND  = makedepend
 LINKOPTS = -lm #-lnsl
 #############################################
 
-SOURCES = ftlmgr.c fdevicedriver.c #main.c
+SOURCES = fdevicedriver.c main.c ftlmgr.c
 
-OBJECTS = ftlmgr.o fdevicedriver.o #main.o
+OBJECTS = fdevicedriver.o main.o ftlmgr.o
 
 .SUFFIXES : .C .c .o
 

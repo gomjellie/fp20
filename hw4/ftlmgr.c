@@ -12,7 +12,6 @@
 #include "sectormap.h"
 // 필요한 경우 헤더 파일을 추가하시오.
 
-FILE *flashfp;
 extern int dd_read(int ppn, char *pagebuf);
 extern int dd_write(int ppn, char *pagebuf);
 extern int dd_erase(int pbn);
@@ -25,6 +24,7 @@ typedef enum _bool {
 } bool;
 
 #define QUEUE_BUFF_SIZE DATAPAGES_PER_DEVICE + 40
+
 typedef struct _queue {
     int buff[QUEUE_BUFF_SIZE]; // [60 + 40]
 
@@ -33,7 +33,7 @@ typedef struct _queue {
     int capacity;
 } queue;
 
-queue* new_queue();
+queue new_queue();
 void queue_pop(queue* this);
 void queue_push(queue* this, int val);
 bool queue_empty(queue* this);
@@ -41,54 +41,37 @@ int queue_front(queue* this);
 int queue_size(queue* this);
 
 int sector_mapping_table[DATAPAGES_PER_DEVICE]; // 디바이스에 있는 섹터 개수 - free_sector 개수
-int free_block_position;
-queue* psq; // physical_sector_queue
+queue psq; // physical_sector_queue
 
-//
-// flash memory를 처음 사용할 때 필요한 초기화 작업, 예를 들면 address mapping table에 대한
-// 초기화 등의 작업을 수행한다. 따라서, 첫 번째 ftl_write() 또는 ftl_read()가 호출되기 전에
-// file system에 의해 반드시 먼저 호출이 되어야 한다.
-//
-void ftl_open()
-{
-    //
-    // address mapping table 초기화
-    // free block's pbn 초기화
-    // address mapping table에서 lbn 수는 DATABLKS_PER_DEVICE 동일
+void ftl_open() {
+    // flash memory를 처음 사용할 때 필요한 초기화 작업.
+    // ftl_write(), ftl_read() 이전에 호출되어야한다.
     psq = new_queue();
     for (int i = 0; i < DATAPAGES_PER_DEVICE; i++) {
         sector_mapping_table[i] = -1;
-        queue_push(psq, i);
+        queue_push(&psq, i);
     }
+}
 
-    free_block_position = DATABLKS_PER_DEVICE;
-
+void ftl_read(int lsn, char *sectorbuf) {
+    // sectorbuf는 호출이전에 이미 512B 메모리가 할당이 되어있다.
+    byte page_buff[PAGE_SIZE];
+    int ppn = sector_mapping_table[lsn];
+    dd_read(ppn, page_buff);
+    memcpy(sectorbuf, page_buff, SECTOR_SIZE);
     return;
 }
 
-//
-// 이 함수를 호출하기 전에 이미 sectorbuf가 가리키는 곳에 512B의 메모리가 할당되어 있어야 한다.
-// 즉, 이 함수에서 메모리를 할당받으면 안된다.
-//
-void ftl_read(int lsn, char *sectorbuf)
-{
-    // 비어있는 ppn을 가져와서 mapping_table[lsn] = ppn으로 바꿈.
-    return;
-}
-
-void ftl_write(int lsn, char *sectorbuf)
-{
+void ftl_write(int lsn, char *sectorbuf) {
     byte page_buff[PAGE_SIZE];
     byte spare_buff[SPARE_SIZE];
     int ppn = sector_mapping_table[lsn];
-    if (ppn != -1) {
-        queue_push(psq, ppn); // 반납
-    }
+    if (ppn != -1)
+        queue_push(&psq, ppn); // 반납
 
-    int priority_ppn = queue_front(psq); queue_pop(psq);
+    int priority_ppn = queue_front(&psq); queue_pop(&psq);
     memcpy(page_buff, sectorbuf, SECTOR_SIZE);
-
-    // TODO: spare_buff에 lsn을 넣어야됨.
+    *((int *)spare_buff) = lsn; // spare_buff에 lsn을 넣음.
     memcpy(page_buff + SECTOR_SIZE, spare_buff, SPARE_SIZE);
     dd_write(priority_ppn, page_buff);
     sector_mapping_table[lsn] = priority_ppn;
@@ -98,15 +81,19 @@ void ftl_write(int lsn, char *sectorbuf)
 
 void ftl_print()
 {
-
+    printf("lpn pp \n");
+    for (int i = 0 ; i < DATAPAGES_PER_DEVICE; i++) printf("%d %d \n", i, sector_mapping_table[i]);
+    printf("free block’s pbn=%d", queue_front(&psq));
     return;
 }
 
-queue* new_queue() {
-    queue* this = (queue*) calloc(QUEUE_BUFF_SIZE + 20, sizeof(queue));
-    this->capacity = QUEUE_BUFF_SIZE + 20;
-    this->front = 0;
-    this->rear = 0;
+queue new_queue() {
+    // 소멸자 호출을 넣을수 있는 ftl_close가 없어서 queue 를 동적 메모리로 생성하지 않음.
+    queue this = {
+        .capacity = QUEUE_BUFF_SIZE,
+        .front = 0,
+        .rear = 0,
+    };
     
     return this;
 }
@@ -137,9 +124,4 @@ void queue_show(queue* this) {
 
 bool queue_empty(queue* this) {
     return this->front == this->rear;
-}
-
-int main() {
-    flashfp = fopen("flash_file", "wr+");
-    ftl_open();
 }
