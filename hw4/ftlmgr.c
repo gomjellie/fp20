@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <assert.h>
 #include "sectormap.h"
 // 필요한 경우 헤더 파일을 추가하시오.
 
@@ -81,27 +82,28 @@ static void garbage_collect() {
     
     for (int pg = 0; pg < DEVICE_SIZE; pg += PAGES_PER_BLOCK) { // pg += 4 for every loop
         if (!pages_to_clean[pg] && !pages_to_clean[pg + 1] && !pages_to_clean[pg + 2] && !pages_to_clean[pg + 3]) continue;
-        
+        printf("pg : %d\n", pg);
         memset(page_buff, 0, PAGE_SIZE);
         for (int j = 0; j < PAGES_PER_BLOCK; j++) {// 0 ~ 4
             if (!pages_to_clean[pg + j]) { // valid data(not garbage)
+                printf("not garbage: %d\n", pg + j);
                 dd_read(pg + j, page_buff);
-                int lsn = *((int *)page_buff + SECTOR_SIZE);
+                int lsn = *((int *)(page_buff + SECTOR_SIZE));
                 sector_mapping_table[lsn] = free_block_idx + j;
+                printf("table[%d] = %d  ", lsn, free_block_idx + j); puts(page_buff);
                 dd_write(free_block_idx + j, page_buff);
                 continue;
             }
             // garbage -> clean page
             queue_push(&psq, free_block_idx + j);
         }
-        dd_erase(free_block_idx / PAGES_PER_BLOCK);
         free_block_idx = pg;
+        dd_erase(free_block_idx / PAGES_PER_BLOCK);
     }
 }
 
 void ftl_write(int lsn, char *sectorbuf) {
     byte page_buff[PAGE_SIZE];
-    byte spare_buff[SPARE_SIZE];
     int ppn = sector_mapping_table[lsn];
     if (ppn != -1)
         queue_push(&gbq, ppn);
@@ -111,8 +113,8 @@ void ftl_write(int lsn, char *sectorbuf) {
     
     int priority_ppn = queue_front(&psq); queue_pop(&psq);
     memcpy(page_buff, sectorbuf, SECTOR_SIZE);
-    *((int *)spare_buff) = lsn; // spare_buff에 lsn을 넣음.
-    memcpy(page_buff + SECTOR_SIZE, spare_buff, SPARE_SIZE);
+    *((int *)(page_buff + SECTOR_SIZE)) = lsn;
+    assert (*((int *)(page_buff + SECTOR_SIZE)) == lsn);
     dd_write(priority_ppn, page_buff);
     sector_mapping_table[lsn] = priority_ppn;
     
