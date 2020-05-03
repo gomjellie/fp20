@@ -47,7 +47,7 @@ int main() {
     ftl_print();
     for (int i = 0; i < 57; i++) {
         ftl_read(i, free_buf);
-        printf("%d: %s\n", i, free_buf);
+        // printf("%d: %s\n", i, free_buf);
     }
 }
 

@@ -28,8 +28,8 @@ typedef enum _bool {
 
 #define QUEUE_BUFF_SIZE DATAPAGES_PER_DEVICE + 30
 
-typedef struct _queue {
-    int buff[QUEUE_BUFF_SIZE]; // [60 + 40]
+typedef struct _queue { // priority queue로 바꾸면 정책에 맞춰서 동작한다.
+    int buff[QUEUE_BUFF_SIZE]; // [60 + 30]
 
     int front;
     int rear;
@@ -91,13 +91,13 @@ void ftl_write(int lsn, char *sectorbuf) {
 }
 
 void ftl_print() {
-    printf("lpn pp \n");
+    printf("lpn ppn\n");
     for (int i = 0 ; i < DATAPAGES_PER_DEVICE; i++) printf("%d %d \n", i, sector_mapping_table[i]);
-    printf("free block’s pbn=%d", free_block_idx);
-    puts("\ngarbage queue");
-    queue_show(&gbq);
-    puts("physical sector queue");
-    queue_show(&psq);
+    printf("free block’s pbn=%d\n", free_block_idx);
+    // puts("\ngarbage queue");
+    // queue_show(&gbq);
+    // puts("physical sector queue");
+    // queue_show(&psq);
     return;
 }
 
