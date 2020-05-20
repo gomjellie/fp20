@@ -1,17 +1,17 @@
-#ifndef	_PERSON_H_
-#define	_PERSON_H_
+#ifndef _PERSON_H_
+#define _PERSON_H_
 
-#define RECORD_SIZE	100 // including 6 delimeters
-#define PAGE_SIZE		256 // ¼öÁ¤ °¡´ÉÇÔ	
+#define RECORD_SIZE 100 // including 6 delimeters
+#define PAGE_SIZE   256 // ìˆ˜ì • ê°€ëŠ¥í•¨
 
 typedef struct _Person
 {
-	char sn[14];		//ÁÖ¹Î¹øÈ£
-	char name[18];		//ÀÌ¸§
-	char age[4];		//³ªÀÌ
-	char addr[22];	    	//ÁÖ¼Ò
-	char phone[16];		//ÀüÈ­¹øÈ£
-	char email[26];		//ÀÌ¸ŞÀÏ ÁÖ¼Ò
+    char sn[14];        //ì£¼ë¯¼ë²ˆí˜¸
+    char name[18];      //ì´ë¦„
+    char age[4];        //ë‚˜ì´
+    char addr[22];      //ì£¼ì†Œ
+    char phone[16];     //ì „í™”ë²ˆí˜¸
+    char email[26];     //ì´ë©”ì¼ ì£¼ì†Œ
 } Person;
 
 #endif
