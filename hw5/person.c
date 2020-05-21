@@ -6,7 +6,7 @@
 //필요한 경우 헤더 파일과 함수를 추가할 수 있음
 
 enum init {
-    PAGE_LEN = 10000,
+    INIT_PAGE_LEN = 2,
 };
 
 enum args {
@@ -109,19 +109,20 @@ void delete(FILE *fp, const char *sn) {
 
 }
 
-void init_flash(FILE** fp, const char* file_name) {
+static void init_flash(FILE** fp, const char* file_name) {
     *fp = fopen(file_name, "w+");
     
     char mem_buff[PAGE_SIZE];
-    memset((void *)mem_buff, 0xFF, PAGE_SIZE);
-    
-    for (int i = 0; i < PAGE_LEN; i++) {
-        int ret = fwrite((void *)mem_buff, PAGE_SIZE, 1, *fp);
-        if (ret == -1) { perror("Error"); exit(1); }
-    }
+    memset((void *)mem_buff, 0xFF, PAGE_SIZE * 2);
+    *((int *)mem_buff) = INIT_PAGE_LEN; // 전체 페이지 수
+    *((int *)(mem_buff + 4)) = 0;       // 모든 레코드 수
+    *((int *)(mem_buff + 8)) = -1;      // 삭제된 페이지 번호
+    *((int *)(mem_buff + 12)) = -1;     // 삭제된 레코드 번호(페이지 내에서의 번호)
+    int ret = fwrite((void *)mem_buff, PAGE_SIZE * 2, 1, *fp);
+    if (ret == -1) { perror("Error"); exit(1); }
 }
 
-Person* new_person(const char* sn, const char* name, const char* age, const char* addr, const char* phone, const char* email) {
+static Person* new_person(const char* sn, const char* name, const char* age, const char* addr, const char* phone, const char* email) {
     Person* this = (Person *)malloc(sizeof(Person));
     strncpy(this->sn, sn, SN);
     strncpy(this->name, name, NAME);
@@ -132,7 +133,7 @@ Person* new_person(const char* sn, const char* name, const char* age, const char
     return this;
 }
 
-void person_print(Person* this) {
+static void person_print(Person* this) {
     printf("sn: %s\n", this->sn);
     printf("name: %s\n", this->name);
     printf("age: %s\n", this->age);
