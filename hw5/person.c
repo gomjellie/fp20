@@ -141,7 +141,7 @@ void insert(FILE *fp, const Person *p) {
         tr = nr % REC_PER_PAGE; // target index at page
         tp = (nr / REC_PER_PAGE) + 1;
         char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
-        if (tp > np) { // 페이지를 새로 추가해야되는경우
+        if (tp >= np) { // 페이지를 새로 추가해야되는경우
             char mem_buff[PAGE_SIZE];
             memset((void *)mem_buff, 0x00, PAGE_SIZE);
             int ret = fwrite((void *)mem_buff, PAGE_SIZE, 1, fp);
