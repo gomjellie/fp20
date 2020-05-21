@@ -25,6 +25,10 @@ static Person* new_person(const char* sn, const char* name, const char* age, con
     return this;
 }
 
+static void del_person(Person* this) {
+    free(this);
+}
+
 static void person_print(Person* this) {
     printf("sn: %s\n", this->sn);
     printf("name: %s\n", this->name);
@@ -195,6 +199,7 @@ int main(int argc, char *argv[]) {
             }
             Person* p = new_person(argv[FIELD_SN], argv[FIELD_NAME], argv[FIELD_AGE], argv[FIELD_ADDR], argv[FIELD_PHONE], argv[FIELD_EMAIL]);
             insert(fp, p);
+            del_person(p);
             break;
         case 'd':
             fp = fopen(argv[FILE_NAME], "r+");
