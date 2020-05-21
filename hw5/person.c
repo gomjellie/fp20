@@ -5,23 +5,52 @@
 #include "person.h"
 //필요한 경우 헤더 파일과 함수를 추가할 수 있음
 
+enum person_len {
+    SN    = 14,     //주민번호
+    NAME  = 18,     //이름
+    AGE   = 4,      //나이
+    ADDR  = 22,     //주소
+    PHONE = 16,     //전화번호
+    EMAIL = 26,     //이메일 주소
+};
+
+static Person* new_person(const char* sn, const char* name, const char* age, const char* addr, const char* phone, const char* email) {
+    Person* this = (Person *)malloc(sizeof(Person));
+    strncpy(this->sn, sn, SN);
+    strncpy(this->name, name, NAME);
+    strncpy(this->age, age, AGE);
+    strncpy(this->addr, addr, ADDR);
+    strncpy(this->phone, phone, PHONE);
+    strncpy(this->email, email, EMAIL);
+    return this;
+}
+
+static void person_print(Person* this) {
+    printf("sn: %s\n", this->sn);
+    printf("name: %s\n", this->name);
+    printf("age: %s\n", this->age);
+    printf("addr: %s\n", this->addr);
+    printf("phone: %s\n", this->phone);
+    printf("email: %s\n", this->email);
+}
+
+const char delimeter = '#';
+const size_t REC_PER_PAGE = PAGE_SIZE / RECORD_SIZE;
+
 enum init {
     INIT_PAGE_LEN = 2,
 };
 
 enum args {
-    OPTION = 1,
-    FILE_NAME = 2,
-    FIELD_SN = 3,
-    FIELD_NAME = 4,
-    FIELD_AGE = 5,
-    FIELD_ADDR = 6,
+    OPTION      = 1,
+    FILE_NAME   = 2,
+    FIELD_SN    = 3,
+    FIELD_NAME  = 4,
+    FIELD_AGE   = 5,
+    FIELD_ADDR  = 6,
     FIELD_PHONE = 7,
     FIELD_EMAIL = 8,
 };
-
-const char delimeter = '#';
-const size_t REC_PER_PAGE = PAGE_SIZE / RECORD_SIZE;
 
 // 과제 설명서대로 구현하는 방식은 각자 다를 수 있지만 약간의 제약을 둡니다.
 // 레코드 파일이 페이지 단위로 저장 관리되기 때문에 사용자 프로그램에서 레코드 파일로부터 데이터를 읽고 쓸 때도
@@ -47,14 +76,6 @@ void writePage(FILE *fp, const char *pagebuf, int pagenum) {
     fwrite((const void *)pagebuf, PAGE_SIZE, 1, fp);
 }
 
-enum person_len {
-    SN = 14,        //주민번호
-    NAME = 18,      //이름
-    AGE = 4,        //나이
-    ADDR = 22,      //주소
-    PHONE = 16,     //전화번호
-    EMAIL = 26,     //이메일 주소
-};
 //
 // 새로운 레코드를 저장할 때 터미널로부터 입력받은 정보를 Person 구조체에 먼저 저장하고, pack() 함수를 사용하여
 // 레코드 파일에 저장할 레코드 형태를 recordbuf에 만든다. 그런 후 이 레코드를 저장할 페이지를 readPage()를 통해 프로그램 상에
@@ -159,26 +180,6 @@ static void init_flash(FILE** fp, const char* file_name) {
     *((int *)(mem_buff + 12)) = -1;     // 삭제된 레코드 번호(페이지 내에서의 번호)
     int ret = fwrite((void *)mem_buff, PAGE_SIZE * 2, 1, *fp);
     if (ret == -1) { perror("Error"); exit(1); }
-}
-
-static Person* new_person(const char* sn, const char* name, const char* age, const char* addr, const char* phone, const char* email) {
-    Person* this = (Person *)malloc(sizeof(Person));
-    strncpy(this->sn, sn, SN);
-    strncpy(this->name, name, NAME);
-    strncpy(this->age, age, AGE);
-    strncpy(this->addr, addr, ADDR);
-    strncpy(this->phone, phone, PHONE);
-    strncpy(this->email, email, EMAIL);
-    return this;
-}
-
-static void person_print(Person* this) {
-    printf("sn: %s\n", this->sn);
-    printf("name: %s\n", this->name);
-    printf("age: %s\n", this->age);
-    printf("addr: %s\n", this->addr);
-    printf("phone: %s\n", this->phone);
-    printf("email: %s\n", this->email);
 }
 
 int main(int argc, char *argv[]) {
