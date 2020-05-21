@@ -21,6 +21,7 @@ enum args {
 };
 
 const char delimeter = '#';
+const size_t REC_PER_PAGE = PAGE_SIZE / RECORD_SIZE;
 
 // 과제 설명서대로 구현하는 방식은 각자 다를 수 있지만 약간의 제약을 둡니다.
 // 레코드 파일이 페이지 단위로 저장 관리되기 때문에 사용자 프로그램에서 레코드 파일로부터 데이터를 읽고 쓸 때도
@@ -99,7 +100,45 @@ void unpack(const char *recordbuf, Person *p) {
 // 새로운 레코드를 저장하는 기능을 수행하며, 터미널로부터 입력받은 필드값을 구조체에 저장한 후 아래의 insert() 함수를 호출한다.
 //
 void insert(FILE *fp, const Person *p) {
+    char* student_buff = (char *)calloc(RECORD_SIZE, sizeof(char));
+    pack(student_buff, p);
+    
+    char* meta_page = (char *)malloc(PAGE_SIZE * sizeof(char));
+    readPage(fp, meta_page, 0);
+    const int np = *((int *)meta_page);        // 전체 페이지 수
+    const int nr = *((int *)(meta_page + 4));  // 모든 레코드 수 (삭제 포함)
+    const int dp = *((int *)(meta_page + 8));  // 삭제된 페이지 번호
+    const int dr = *((int *)(meta_page + 12)); // 삭제된 레코드 번호(페이지 내에서의 번호)
+    int tp = 0; // target page
+    int tr = 0; // target record
 
+    if (dp == -1) { // 삭제후보가 없는경우
+        tr = nr % REC_PER_PAGE; // target index at page
+        tp = (nr / REC_PER_PAGE) + 1;
+        char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
+        if (tp > np) { // 페이지를 새로 추가해야되는경우
+            char mem_buff[PAGE_SIZE];
+            memset((void *)mem_buff, 0x00, PAGE_SIZE);
+            int ret = fwrite((void *)mem_buff, PAGE_SIZE, 1, fp);
+            if (ret == -1) { perror("Error"); exit(1); }
+        }
+        readPage(fp, tar_page, tp);
+        strncpy(tar_page + tr * RECORD_SIZE, student_buff, RECORD_SIZE);
+        *((int *)meta_page) = tp; // 페이지수
+        *((int *)(meta_page + 4)) = nr + 1; // 레코드수 증가
+        return;
+    }
+    tp = dp;
+    tr = dr;
+    
+    char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
+    readPage(fp, tar_page, tp);
+    char* tar = tar_page + tr * RECORD_SIZE;
+    int next_page = *((int*)tar);
+    int next_rec = *((int*)(tar + 4));
+    *((int *)(meta_page + 8)) = next_page;
+    *((int *)(meta_page + 12)) = next_rec;
+    strncpy(tar_page + tr * RECORD_SIZE, student_buff, RECORD_SIZE);
 }
 
 //
@@ -113,7 +152,7 @@ static void init_flash(FILE** fp, const char* file_name) {
     *fp = fopen(file_name, "w+");
     
     char mem_buff[PAGE_SIZE];
-    memset((void *)mem_buff, 0xFF, PAGE_SIZE * 2);
+    memset((void *)mem_buff, 0x00, PAGE_SIZE);
     *((int *)mem_buff) = INIT_PAGE_LEN; // 전체 페이지 수
     *((int *)(mem_buff + 4)) = 0;       // 모든 레코드 수
     *((int *)(mem_buff + 8)) = -1;      // 삭제된 페이지 번호
@@ -154,12 +193,7 @@ int main(int argc, char *argv[]) {
                 init_flash(&fp, argv[FILE_NAME]);
             }
             Person* p = new_person(argv[FIELD_SN], argv[FIELD_NAME], argv[FIELD_AGE], argv[FIELD_ADDR], argv[FIELD_PHONE], argv[FIELD_EMAIL]);
-            // person_print(p);
-            char* buff = (char *)calloc(RECORD_SIZE, sizeof(char));
-            pack(buff, p);
-            Person res;
-            unpack(buff, &res);
-            person_print(&res);
+            insert(fp, p);
             break;
         case 'd':
             fp = fopen(argv[FILE_NAME], "r+");
