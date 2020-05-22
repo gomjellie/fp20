@@ -29,7 +29,7 @@ static void del_person(Person* this) {
     free(this);
 }
 
-static void person_print(Person* this) {
+static void person_print(const Person* this) {
     printf("sn: %s\n", this->sn);
     printf("name: %s\n", this->name);
     printf("age: %s\n", this->age);
@@ -142,6 +142,7 @@ void insert(FILE *fp, const Person *p) {
         tp = (nr / REC_PER_PAGE) + 1;
         char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
         if (tp >= np) { // 페이지를 새로 추가해야되는경우
+            printf("페이지가 부족해서 추가함 추가된 페이지: %d\n", tp);
             char mem_buff[PAGE_SIZE];
             memset((void *)mem_buff, 0x00, PAGE_SIZE);
             int ret = fwrite((void *)mem_buff, PAGE_SIZE, 1, fp);
@@ -151,26 +152,62 @@ void insert(FILE *fp, const Person *p) {
         strncpy(tar_page + tr * RECORD_SIZE, student_buff, RECORD_SIZE);
         *((int *)meta_page) = tp; // 페이지수
         *((int *)(meta_page + 4)) = nr + 1; // 레코드수 증가
+        writePage(fp, meta_page, 0);
+        writePage(fp, tar_page, tp);
+        free(student_buff); free(meta_page); free(tar_page);
+        
         return;
     }
-    tp = dp;
-    tr = dr;
+    tp = dp; // target page
+    tr = dr; // target record (record index at target page)
     
     char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
     readPage(fp, tar_page, tp);
     char* tar = tar_page + tr * RECORD_SIZE;
-    int next_page = *((int*)tar);
-    int next_rec = *((int*)(tar + 4));
+    const int next_page = *((int*)tar);
+    const int next_rec = *((int*)(tar + 4));
     *((int *)(meta_page + 8)) = next_page;
     *((int *)(meta_page + 12)) = next_rec;
+    
     strncpy(tar_page + tr * RECORD_SIZE, student_buff, RECORD_SIZE);
+    writePage(fp, meta_page, 0);
+    writePage(fp, tar_page, 0);
+    free(student_buff); free(meta_page); free(tar_page);
 }
 
 //
 // 주민번호와 일치하는 레코드를 찾아서 삭제하는 기능을 수행한다.
 //
 void delete(FILE *fp, const char *sn) {
+    char* meta_page = (char *)malloc(PAGE_SIZE * sizeof(char));
+    readPage(fp, meta_page, 0);
+    const int np = *((int *)meta_page);        // 전체 페이지 수
+    const int nr = *((int *)(meta_page + 4));  // 모든 레코드 수 (삭제 포함)
+    const int dp = *((int *)(meta_page + 8));  // 삭제된 페이지 번호
+    const int dr = *((int *)(meta_page + 12)); // 삭제된 레코드 번호(페이지 내에서의 번호)
 
+    for (int ip = 1; ip < np; ip++) { // iterate page
+        char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
+        readPage(fp, tar_page, ip);
+        for (int ir = 0; ir < REC_PER_PAGE; ir++) { // iterate record in page
+            Person p;
+            unpack(tar_page + ir * PAGE_SIZE, &p);
+            person_print(&p);
+            if (strcmp(p.sn, sn) == 0) { // if match
+                printf("found matching at page: %d, rec index: %d\n", ip, ir);
+                *((int *)tar_page) = dp;
+                *((int *)(tar_page + 4)) = dr;
+                *((int *)(meta_page + 8)) = ip;
+                *((int *)(meta_page + 12)) = ir;
+                writePage(fp, tar_page, ip); free(tar_page);
+                writePage(fp, meta_page, 0); free(meta_page);
+                return; // 주민번호(sn)이 유일한 키(primary key) 이기 때문에 중복은 없다.
+            }
+        }
+        free(tar_page);
+    }
+    puts("matching record not found");
+    free(meta_page);
 }
 
 static void init_flash(FILE** fp, const char* file_name) {
@@ -190,19 +227,26 @@ int main(int argc, char *argv[]) {
     FILE *fp;  // 레코드 파일의 파일 포인터
     
     char option = argv[OPTION][0];
-    
+    fp = fopen(argv[FILE_NAME], "r+");
+    if (fp == NULL) init_flash(&fp, argv[FILE_NAME]);
+
     switch (option) {
         case 'i':
-            fp = fopen(argv[FILE_NAME], "r+");
-            if (fp == NULL) {
-                init_flash(&fp, argv[FILE_NAME]);
+            if (argc != 9) {
+                puts("not enough arguments!");
+                puts("Usage: a.out i person.dat \"8811032129018\" \"GD Hong\" \"23\" \"Seoul\" \"02-820-0924\" \"gdhong@ssu.ac.kr\"");
+                exit(1);
             }
             Person* p = new_person(argv[FIELD_SN], argv[FIELD_NAME], argv[FIELD_AGE], argv[FIELD_ADDR], argv[FIELD_PHONE], argv[FIELD_EMAIL]);
             insert(fp, p);
             del_person(p);
             break;
         case 'd':
-            fp = fopen(argv[FILE_NAME], "r+");
+            if (argc != 4) {
+                puts("not enough arguments!");
+                puts("Usage: a.out person.dat \"8811032129018\""); exit(1);
+            }
+            delete(fp, argv[FIELD_SN]);
             break;
         default:
             printf("invalid option %c", option); break;
