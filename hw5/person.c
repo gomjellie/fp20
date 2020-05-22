@@ -126,9 +126,6 @@ void unpack(const char *recordbuf, Person *p) {
 //
 void insert(FILE *fp, const Person *p) {
     char* student_buff = (char *)malloc(RECORD_SIZE * sizeof(char));
-    pack(student_buff, p);
-    puts("인서트할 사람정보:");
-    person_print(p);
     
     char* meta_page = (char *)malloc(PAGE_SIZE * sizeof(char));
     readPage(fp, meta_page, 0);
@@ -136,22 +133,16 @@ void insert(FILE *fp, const Person *p) {
     const int nr = *((int *)(meta_page + 4));  // 모든 레코드 수 (삭제 포함)
     const int dp = *((int *)(meta_page + 8));  // 삭제된 페이지 번호
     const int dr = *((int *)(meta_page + 12)); // 삭제된 레코드 번호(페이지 내에서의 번호)
-    printf("----메타 데이터-----\n");
-    printf("페이지수: %d, 레코드수: %d, 삭제된 레코드: %d페이지의 %d번째\n", np, nr, dp, dr);
-    puts("--------");
     int tp = 0; // target page
     int tr = 0; // target record
 
     if (dp == -1) { // 삭제후보가 없는경우
         tp = (nr / REC_PER_PAGE) + 1;
         tr = nr % REC_PER_PAGE; // target index at page
-        printf("타겟: %d페이지 %d번째 레코드\n", tp, tr);
         char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
         if (tp >= np) { // 페이지를 새로 추가해야되는경우
-            printf("타겟페이지: %d 현재 페이지수 %d\n", tp, np);
-            printf("페이지가 부족해서 추가함 추가된 페이지: %d\n", tp);
             char new_page[PAGE_SIZE];
-            memset((void *)new_page, 0x00, PAGE_SIZE);
+            memset((void *)new_page, 0xFF, PAGE_SIZE);
             writePage(fp, new_page, tp);
         }
         readPage(fp, tar_page, tp);
@@ -160,7 +151,6 @@ void insert(FILE *fp, const Person *p) {
         *((int *)(meta_page + 4)) = nr + 1; // 레코드수 증가
         writePage(fp, meta_page, 0);
         writePage(fp, tar_page, tp);
-        printf("타겟 %d페이지의 %d번째 레코드로 추가함\n", tp, tr);
         free(student_buff); free(meta_page); free(tar_page);
         
         return;
@@ -179,7 +169,6 @@ void insert(FILE *fp, const Person *p) {
     memcpy(tar_page + tr * RECORD_SIZE, student_buff, RECORD_SIZE);
     writePage(fp, meta_page, 0);
     writePage(fp, tar_page, tp);
-    printf("타겟페이지: %d의 %d번째 레코드로 추가함\n", tp, tr);
     free(student_buff); free(meta_page); free(tar_page);
 }
 
@@ -193,10 +182,7 @@ void delete(FILE *fp, const char *sn) {
     const int nr = *((int *)(meta_page + 4));  // 모든 레코드 수 (삭제 포함)
     const int dp = *((int *)(meta_page + 8));  // 삭제된 페이지 번호
     const int dr = *((int *)(meta_page + 12)); // 삭제된 레코드 번호(페이지 내에서의 번호)
-    printf("----메타 데이터-----\n");
-    printf("페이지수: %d, 레코드수: %d, 삭제된 레코드: %d페이지의 %d번째\n", np, nr, dp, dr);
-    puts("--------");
-
+    
     for (int ip = 1; ip < np; ip++) { // iterate page
         char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
         readPage(fp, tar_page, ip);
@@ -205,7 +191,6 @@ void delete(FILE *fp, const char *sn) {
             unpack(tar_page + ir * RECORD_SIZE, &p);
             if (strcmp(p.sn, sn) == 0) { // if match
                 person_print(&p);
-                printf("found matching at page: %d, rec index: %d\n", ip, ir);
                 char* tar = tar_page + ir * RECORD_SIZE;
                 *((int *)tar) = dp;
                 *((int *)(tar + 4)) = dr;
@@ -218,7 +203,6 @@ void delete(FILE *fp, const char *sn) {
         }
         free(tar_page);
     }
-    puts("matching record not found");
     free(meta_page);
 }
 
@@ -229,9 +213,6 @@ static void show(FILE* fp) {
     const int nr = *((int *)(meta_page + 4));  // 모든 레코드 수 (삭제 포함)
     const int dp = *((int *)(meta_page + 8));  // 삭제된 페이지 번호
     const int dr = *((int *)(meta_page + 12)); // 삭제된 레코드 번호(페이지 내에서의 번호)
-    printf("----메타 데이터-----\n");
-    printf("페이지수: %d, 레코드수: %d, 삭제된 레코드: %d페이지의 %d번째\n", np, nr, dp, dr);
-    puts("--------");
 
     for (int ip = 1; ip < np; ip++) { // iterate page
         char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
@@ -252,7 +233,7 @@ static void init_flash(FILE** fp, const char* file_name) {
     *fp = fopen(file_name, "w+");
     
     char mem_buff[PAGE_SIZE];
-    memset((void *)mem_buff, 0x00, PAGE_SIZE);
+    memset((void *)mem_buff, 0xFF, PAGE_SIZE);
     *((int *)mem_buff) = INIT_PAGE_LEN; // 전체 페이지 수
     *((int *)(mem_buff + 4)) = 0;       // 모든 레코드 수
     *((int *)(mem_buff + 8)) = -1;      // 삭제된 페이지 번호
