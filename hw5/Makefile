@@ -11,5 +11,11 @@ $(OBJ): $(SRC)
 person: $(OBJ)
 	$(CC) $(OBJ)
 
-test: $(SRC)
+insert: a.out
 	./a.out i person.dat "8811032129018" "GD Hong" "23" "Seoul" "02-820-0924" "gdhong@ssu.ac.kr"
+
+delete: a.out
+	./a.out d person.dat "8811032129018"
+
+show: a.out
+	./a.out s person.dat

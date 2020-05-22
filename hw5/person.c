@@ -16,12 +16,12 @@ enum person_len {
 
 static Person* new_person(const char* sn, const char* name, const char* age, const char* addr, const char* phone, const char* email) {
     Person* this = (Person *)malloc(sizeof(Person));
-    strncpy(this->sn, sn, SN);
-    strncpy(this->name, name, NAME);
-    strncpy(this->age, age, AGE);
-    strncpy(this->addr, addr, ADDR);
-    strncpy(this->phone, phone, PHONE);
-    strncpy(this->email, email, EMAIL);
+    memcpy(this->sn, sn, SN);
+    memcpy(this->name, name, NAME);
+    memcpy(this->age, age, AGE);
+    memcpy(this->addr, addr, ADDR);
+    memcpy(this->phone, phone, PHONE);
+    memcpy(this->email, email, EMAIL);
     return this;
 }
 
@@ -90,12 +90,12 @@ void writePage(FILE *fp, const char *pagebuf, int pagenum) {
 void pack(char *recordbuf, const Person *p) {
     char* rb = recordbuf;
     size_t s;
-    strncpy(rb, p->sn    , s = strlen(p->sn));    rb[s] = delimeter; rb += SN;
-    strncpy(rb, p->name  , s = strlen(p->name));  rb[s] = delimeter; rb += NAME;
-    strncpy(rb, p->age   , s = strlen(p->age));   rb[s] = delimeter; rb += AGE;
-    strncpy(rb, p->addr  , s = strlen(p->addr));  rb[s] = delimeter; rb += ADDR;
-    strncpy(rb, p->phone , s = strlen(p->phone)); rb[s] = delimeter; rb += PHONE;
-    strncpy(rb, p->email , s = strlen(p->email)); rb[s] = delimeter; rb += EMAIL;
+    memcpy(rb, p->sn    , s = strlen(p->sn));    rb[s] = delimeter; rb += SN;
+    memcpy(rb, p->name  , s = strlen(p->name));  rb[s] = delimeter; rb += NAME;
+    memcpy(rb, p->age   , s = strlen(p->age));   rb[s] = delimeter; rb += AGE;
+    memcpy(rb, p->addr  , s = strlen(p->addr));  rb[s] = delimeter; rb += ADDR;
+    memcpy(rb, p->phone , s = strlen(p->phone)); rb[s] = delimeter; rb += PHONE;
+    memcpy(rb, p->email , s = strlen(p->email)); rb[s] = delimeter; rb += EMAIL;
 }
 
 // 
@@ -112,7 +112,7 @@ void unpack(const char *recordbuf, Person *p) {
     size_t lens[] = {SN, NAME, AGE, ADDR, PHONE, EMAIL};
     for (int i = 0; i < RECORD_SIZE; i++) {
         if (recordbuf[i] == delimeter) {
-            strncpy(entries[cnt], recordbuf + piv, i - piv);
+            memcpy(entries[cnt], recordbuf + piv, i - piv);
             entries[cnt][i - piv] = '\0';
             piv += lens[cnt++];
             i = piv ;
@@ -125,8 +125,10 @@ void unpack(const char *recordbuf, Person *p) {
 // 새로운 레코드를 저장하는 기능을 수행하며, 터미널로부터 입력받은 필드값을 구조체에 저장한 후 아래의 insert() 함수를 호출한다.
 //
 void insert(FILE *fp, const Person *p) {
-    char* student_buff = (char *)calloc(RECORD_SIZE, sizeof(char));
+    char* student_buff = (char *)malloc(RECORD_SIZE * sizeof(char));
     pack(student_buff, p);
+    puts("인서트할 사람정보:");
+    person_print(p);
     
     char* meta_page = (char *)malloc(PAGE_SIZE * sizeof(char));
     readPage(fp, meta_page, 0);
@@ -153,7 +155,7 @@ void insert(FILE *fp, const Person *p) {
             writePage(fp, new_page, tp);
         }
         readPage(fp, tar_page, tp);
-        strncpy(tar_page + tr * RECORD_SIZE, student_buff, RECORD_SIZE);
+        memcpy(tar_page + tr * RECORD_SIZE, student_buff, RECORD_SIZE);
         *((int *)meta_page) = tp + 1; // 페이지수
         *((int *)(meta_page + 4)) = nr + 1; // 레코드수 증가
         writePage(fp, meta_page, 0);
@@ -174,9 +176,9 @@ void insert(FILE *fp, const Person *p) {
     *((int *)(meta_page + 8)) = next_page;
     *((int *)(meta_page + 12)) = next_rec;
     
-    strncpy(tar_page + tr * RECORD_SIZE, student_buff, RECORD_SIZE);
+    memcpy(tar_page + tr * RECORD_SIZE, student_buff, RECORD_SIZE);
     writePage(fp, meta_page, 0);
-    writePage(fp, tar_page, 0);
+    writePage(fp, tar_page, tp);
     printf("타겟페이지: %d의 %d번째 레코드로 추가함\n", tp, tr);
     free(student_buff); free(meta_page); free(tar_page);
 }
@@ -191,18 +193,22 @@ void delete(FILE *fp, const char *sn) {
     const int nr = *((int *)(meta_page + 4));  // 모든 레코드 수 (삭제 포함)
     const int dp = *((int *)(meta_page + 8));  // 삭제된 페이지 번호
     const int dr = *((int *)(meta_page + 12)); // 삭제된 레코드 번호(페이지 내에서의 번호)
+    printf("----메타 데이터-----\n");
+    printf("페이지수: %d, 레코드수: %d, 삭제된 레코드: %d페이지의 %d번째\n", np, nr, dp, dr);
+    puts("--------");
 
     for (int ip = 1; ip < np; ip++) { // iterate page
         char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
         readPage(fp, tar_page, ip);
         for (int ir = 0; ir < REC_PER_PAGE; ir++) { // iterate record in page
             Person p;
-            unpack(tar_page + ir * PAGE_SIZE, &p);
-            person_print(&p);
+            unpack(tar_page + ir * RECORD_SIZE, &p);
             if (strcmp(p.sn, sn) == 0) { // if match
+                person_print(&p);
                 printf("found matching at page: %d, rec index: %d\n", ip, ir);
-                *((int *)tar_page) = dp;
-                *((int *)(tar_page + 4)) = dr;
+                char* tar = tar_page + ir * RECORD_SIZE;
+                *((int *)tar) = dp;
+                *((int *)(tar + 4)) = dr;
                 *((int *)(meta_page + 8)) = ip;
                 *((int *)(meta_page + 12)) = ir;
                 writePage(fp, tar_page, ip); free(tar_page);
@@ -213,6 +219,32 @@ void delete(FILE *fp, const char *sn) {
         free(tar_page);
     }
     puts("matching record not found");
+    free(meta_page);
+}
+
+static void show(FILE* fp) {
+    char* meta_page = (char *)malloc(PAGE_SIZE * sizeof(char));
+    readPage(fp, meta_page, 0);
+    const int np = *((int *)meta_page);        // 전체 페이지 수
+    const int nr = *((int *)(meta_page + 4));  // 모든 레코드 수 (삭제 포함)
+    const int dp = *((int *)(meta_page + 8));  // 삭제된 페이지 번호
+    const int dr = *((int *)(meta_page + 12)); // 삭제된 레코드 번호(페이지 내에서의 번호)
+    printf("----메타 데이터-----\n");
+    printf("페이지수: %d, 레코드수: %d, 삭제된 레코드: %d페이지의 %d번째\n", np, nr, dp, dr);
+    puts("--------");
+
+    for (int ip = 1; ip < np; ip++) { // iterate page
+        char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
+        readPage(fp, tar_page, ip);
+        for (int ir = 0; ir < REC_PER_PAGE; ir++) { // iterate record in page
+            printf("-------%d 페이지 %d 번째 사람-----\n", ip, ir);
+            Person* p = calloc(1, sizeof(Person));
+            unpack(tar_page + ir * RECORD_SIZE, p);
+            person_print(p);
+            free(p);
+        }
+        free(tar_page);
+    }
     free(meta_page);
 }
 
@@ -253,6 +285,9 @@ int main(int argc, char *argv[]) {
                 puts("Usage: a.out person.dat \"8811032129018\""); exit(1);
             }
             delete(fp, argv[FIELD_SN]);
+            break;
+        case 's':
+            show(fp);
             break;
         default:
             printf("invalid option %c", option); break;
