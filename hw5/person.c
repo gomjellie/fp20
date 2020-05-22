@@ -30,6 +30,7 @@ static void del_person(Person* this) {
 }
 
 static void person_print(const Person* this) {
+    if (this->sn[0] == '*') { puts("*deleted"); return; }
     printf("sn: %s\n", this->sn);
     printf("name: %s\n", this->name);
     printf("age: %s\n", this->age);
@@ -126,6 +127,8 @@ void unpack(const char *recordbuf, Person *p) {
 //
 void insert(FILE *fp, const Person *p) {
     char* student_buff = (char *)malloc(RECORD_SIZE * sizeof(char));
+    char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
+    pack(student_buff, p);
     
     char* meta_page = (char *)malloc(PAGE_SIZE * sizeof(char));
     readPage(fp, meta_page, 0);
@@ -139,7 +142,6 @@ void insert(FILE *fp, const Person *p) {
     if (dp == -1) { // 삭제후보가 없는경우
         tp = (nr / REC_PER_PAGE) + 1;
         tr = nr % REC_PER_PAGE; // target index at page
-        char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
         if (tp >= np) { // 페이지를 새로 추가해야되는경우
             char new_page[PAGE_SIZE];
             memset((void *)new_page, 0xFF, PAGE_SIZE);
@@ -158,11 +160,10 @@ void insert(FILE *fp, const Person *p) {
     tp = dp; // target page
     tr = dr; // target record (record index at target page)
     
-    char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
     readPage(fp, tar_page, tp);
     char* tar = tar_page + tr * RECORD_SIZE;
-    const int next_page = *((int*)tar);
-    const int next_rec = *((int*)(tar + 4));
+    const int next_page = *((int*)(tar + 1));
+    const int next_rec = *((int*)(tar + 5));
     *((int *)(meta_page + 8)) = next_page;
     *((int *)(meta_page + 12)) = next_rec;
     
@@ -177,23 +178,23 @@ void insert(FILE *fp, const Person *p) {
 //
 void delete(FILE *fp, const char *sn) {
     char* meta_page = (char *)malloc(PAGE_SIZE * sizeof(char));
+    char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
     readPage(fp, meta_page, 0);
     const int np = *((int *)meta_page);        // 전체 페이지 수
     const int nr = *((int *)(meta_page + 4));  // 모든 레코드 수 (삭제 포함)
     const int dp = *((int *)(meta_page + 8));  // 삭제된 페이지 번호
     const int dr = *((int *)(meta_page + 12)); // 삭제된 레코드 번호(페이지 내에서의 번호)
-    
+
     for (int ip = 1; ip < np; ip++) { // iterate page
-        char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
         readPage(fp, tar_page, ip);
         for (int ir = 0; ir < REC_PER_PAGE; ir++) { // iterate record in page
             Person p;
             unpack(tar_page + ir * RECORD_SIZE, &p);
             if (strcmp(p.sn, sn) == 0) { // if match
-                person_print(&p);
                 char* tar = tar_page + ir * RECORD_SIZE;
-                *((int *)tar) = dp;
-                *((int *)(tar + 4)) = dr;
+                tar[0] = '*';
+                *((int *)(tar + 1)) = dp;
+                *((int *)(tar + 5)) = dr;
                 *((int *)(meta_page + 8)) = ip;
                 *((int *)(meta_page + 12)) = ir;
                 writePage(fp, tar_page, ip); free(tar_page);
@@ -201,21 +202,24 @@ void delete(FILE *fp, const char *sn) {
                 return; // 주민번호(sn)이 유일한 키(primary key) 이기 때문에 중복은 없다.
             }
         }
-        free(tar_page);
     }
+    free(tar_page);
     free(meta_page);
 }
 
 static void show(FILE* fp) {
     char* meta_page = (char *)malloc(PAGE_SIZE * sizeof(char));
+    char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
     readPage(fp, meta_page, 0);
     const int np = *((int *)meta_page);        // 전체 페이지 수
     const int nr = *((int *)(meta_page + 4));  // 모든 레코드 수 (삭제 포함)
     const int dp = *((int *)(meta_page + 8));  // 삭제된 페이지 번호
     const int dr = *((int *)(meta_page + 12)); // 삭제된 레코드 번호(페이지 내에서의 번호)
+    printf("----메타 데이터-----\n");
+    printf("페이지수: %d, 레코드수: %d, 삭제된 레코드: %d페이지의 %d번째\n", np, nr, dp, dr);
+    puts("--------");
 
     for (int ip = 1; ip < np; ip++) { // iterate page
-        char* tar_page = (char *)malloc(PAGE_SIZE * sizeof(char));
         readPage(fp, tar_page, ip);
         for (int ir = 0; ir < REC_PER_PAGE; ir++) { // iterate record in page
             printf("-------%d 페이지 %d 번째 사람-----\n", ip, ir);
@@ -224,8 +228,8 @@ static void show(FILE* fp) {
             person_print(p);
             free(p);
         }
-        free(tar_page);
     }
+    free(tar_page);
     free(meta_page);
 }
 
