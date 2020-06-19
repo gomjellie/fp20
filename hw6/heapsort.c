@@ -14,14 +14,16 @@
 // 페이지 번호에 해당하는 페이지를 주어진 페이지 버퍼에 읽어서 저장한다. 페이지 버퍼는 반드시 페이지 크기와 일치해야 한다.
 //
 void readPage(FILE *fp, char *pagebuf, int pagenum) {
-
+    fseek(fp, pagenum * PAGE_SIZE, SEEK_SET);
+    fread((void *)pagebuf, PAGE_SIZE, 1, fp);
 }
 
 //
 // 페이지 버퍼의 데이터를 주어진 페이지 번호에 해당하는 위치에 저장한다. 페이지 버퍼는 반드시 페이지 크기와 일치해야 한다.
 //
 void writePage(FILE *fp, const char *pagebuf, int pagenum) {
-
+    fseek(fp, pagenum * PAGE_SIZE, SEEK_SET);
+    fwrite((const void *)pagebuf, PAGE_SIZE, 1, fp);
 }
 
 //
@@ -29,7 +31,7 @@ void writePage(FILE *fp, const char *pagebuf, int pagenum) {
 // heap의 생성은 Chap9에서 제시한 알고리즘을 따른다. 레코드를 읽을 때 페이지 단위를 사용한다는 것에 주의해야 한다.
 //
 void buildHeap(FILE *inputfp, char **heaparray) {
-
+    
 }
 
 //
@@ -42,9 +44,9 @@ void makeSortedFile(FILE *outputfp, char **heaparray) {
 }
 
 int main(int argc, char *argv[]) {
-	FILE *inputfp;	// 입력 레코드 파일의 파일 포인터
-	FILE *outputfp;	// 정렬된 레코드 파일의 파일 포인터
+    FILE *inputfp;    // 입력 레코드 파일의 파일 포인터
+    FILE *outputfp;    // 정렬된 레코드 파일의 파일 포인터
 
 
-	return 1;
+    return 1;
 }
