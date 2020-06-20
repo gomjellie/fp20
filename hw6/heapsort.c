@@ -198,7 +198,7 @@ void makeSortedFile(FILE *outputfp, char **heaparray) {
         }
         Person *res = heap_top(heap);
         
-        memset((void *)person_buff, 0x00, PAGE_SIZE);
+        memset((void *)person_buff, 0x00, RECORD_SIZE);
         pack(person_buff, res);
         memcpy(tar_page + ir * RECORD_SIZE, person_buff, RECORD_SIZE);
         ir++;
@@ -208,6 +208,8 @@ void makeSortedFile(FILE *outputfp, char **heaparray) {
     writePage(outputfp, meta_page, 0);
     writePage(outputfp, tar_page, ip);
     free(tar_page);
+    free(meta_page);
+    free(person_buff);
 }
 
 static void init_flash(FILE** fp, const char* file_name) {
@@ -274,6 +276,7 @@ int main(int argc, char *argv[]) {
             heap_t *heap;
             buildHeap(inputfp, (char **)&heap);
             makeSortedFile(outputfp, (char **)&heap);
+            del_heap(heap);
             break;
         case 'S':
             puts("output_file: ");
