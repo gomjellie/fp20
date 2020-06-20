@@ -24,21 +24,21 @@ static void person_print(const Person* this) {
     if (this->sn[0] == '*') { puts("*deleted"); return; }
     printf("sn: %s\n", this->sn);
     printf("name: %s\n", this->name);
-    printf("age: %s\n", this->age);
-    printf("addr: %s\n", this->addr);
-    printf("phone: %s\n", this->phone);
-    printf("email: %s\n", this->email);
+    // printf("age: %s\n", this->age);
+    // printf("addr: %s\n", this->addr);
+    // printf("phone: %s\n", this->phone);
+    // printf("email: %s\n", this->email);
 }
 
 void pack(char *recordbuf, const Person *p) {
     char* rb = recordbuf;
     size_t s;
-    memcpy(rb, p->sn    , s = strlen(p->sn));    rb[s] = delimeter; rb += SN;
-    memcpy(rb, p->name  , s = strlen(p->name));  rb[s] = delimeter; rb += NAME;
-    memcpy(rb, p->age   , s = strlen(p->age));   rb[s] = delimeter; rb += AGE;
-    memcpy(rb, p->addr  , s = strlen(p->addr));  rb[s] = delimeter; rb += ADDR;
-    memcpy(rb, p->phone , s = strlen(p->phone)); rb[s] = delimeter; rb += PHONE;
-    memcpy(rb, p->email , s = strlen(p->email)); rb[s] = delimeter; rb += EMAIL;
+    sprintf(rb, p->sn    , s = strlen(p->sn));    rb[s] = delimeter; rb += SN;
+    sprintf(rb, p->name  , s = strlen(p->name));  rb[s] = delimeter; rb += NAME;
+    sprintf(rb, p->age   , s = strlen(p->age));   rb[s] = delimeter; rb += AGE;
+    sprintf(rb, p->addr  , s = strlen(p->addr));  rb[s] = delimeter; rb += ADDR;
+    sprintf(rb, p->phone , s = strlen(p->phone)); rb[s] = delimeter; rb += PHONE;
+    sprintf(rb, p->email , s = strlen(p->email)); rb[s] = delimeter; rb += EMAIL;
 }
 
 void unpack(const char *recordbuf, Person *p) {
@@ -160,16 +160,9 @@ void buildHeap(FILE *inputfp, char **heaparray) {
             unpack(tar_page + ir * RECORD_SIZE, &p);
             if (p.sn[0] == '*') continue; // 삭제된 레코드
             
-            printf("ip: %d, ir: %d \n", ip, ir);
             heap_push(*heap, &p);
             p.sn[0] = '*';
         }
-    }
-
-    while (!heap_empty(*heap)) {
-        Person *res = heap_top(*heap);
-        printf("sn: %s, name: %s\n", res->sn, res->name);
-        heap_pop(*heap);
     }
 
     free(meta_page);
@@ -182,7 +175,43 @@ void buildHeap(FILE *inputfp, char **heaparray) {
 // 레코드를 순서대로 저장할 때도 페이지 단위를 사용한다.
 //
 void makeSortedFile(FILE *outputfp, char **heaparray) {
+    heap_t *heap = *(heap_t **)heaparray;
+    int nr = heap->length;                                     // 전체 레코드 수
+    int np = nr / REC_PER_PAGE + (nr % REC_PER_PAGE ? 1 : 0);  // 페이지수
     
+    int ip = 1; // iterator page
+    int ir = 0; // iterator record
+    
+    char *tar_page  = calloc(1, PAGE_SIZE);
+    char *meta_page = calloc(1, PAGE_SIZE);
+    char *person_buff = calloc(1, RECORD_SIZE);
+
+    *((int *)meta_page) = np + 1;        // 페이지수
+    *((int *)(meta_page + 4)) = nr;      // 레코드수
+    *((int *)(meta_page + 8)) = -1;      // 삭제된 페이지 번호
+    *((int *)(meta_page + 12)) = -1;     // 삭제된 레코드 번호(페이지 내에서의 번호)
+    
+    printf("nr: %d np %d\n", nr, np);
+    while (!heap_empty(heap)) {
+        if (ir == REC_PER_PAGE) {
+            printf("ip %d 쓰여짐\n", ip);
+            writePage(outputfp, tar_page, ip);
+            memset((void *)tar_page, 0xFF, PAGE_SIZE);
+            ir = 0; ip++;
+        }
+        Person *res = heap_top(heap);
+        printf("sn: %s, name: %s ip: %d ir: %d \n", res->sn, res->name, ip, ir);
+        
+        memset((void *)person_buff, 0x00, PAGE_SIZE);
+        pack(person_buff, res);
+        memcpy(tar_page + ir * RECORD_SIZE, person_buff, RECORD_SIZE);
+        ir++;
+        heap_pop(heap);
+    }
+
+    writePage(outputfp, meta_page, 0);
+    writePage(outputfp, tar_page, ip);
+    free(tar_page);
 }
 
 static void init_flash(FILE** fp, const char* file_name) {
@@ -251,11 +280,17 @@ int main(int argc, char *argv[]) {
             makeSortedFile(outputfp, (char **)&heap);
             break;
         case 'S':
-            show(inputfp);
+            // puts("input_file: ");
+            // show(inputfp);
+            puts("output_file: ");
+            show(outputfp);
             break;
         default:
             puts("fall back to default");
     }
+    
+    fclose(inputfp);
+    fclose(outputfp);
     return 0;
 }
 
