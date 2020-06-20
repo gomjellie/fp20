@@ -19,7 +19,6 @@ enum person_len {
     EMAIL = 26,     //이메일 주소
 };
 
-
 static void person_print(const Person* this) {
     if (this->sn[0] == '*') { puts("*deleted"); return; }
     printf("sn: %s\n", this->sn);
@@ -191,16 +190,13 @@ void makeSortedFile(FILE *outputfp, char **heaparray) {
     *((int *)(meta_page + 8)) = -1;      // 삭제된 페이지 번호
     *((int *)(meta_page + 12)) = -1;     // 삭제된 레코드 번호(페이지 내에서의 번호)
     
-    printf("nr: %d np %d\n", nr, np);
     while (!heap_empty(heap)) {
         if (ir == REC_PER_PAGE) {
-            printf("ip %d 쓰여짐\n", ip);
             writePage(outputfp, tar_page, ip);
             memset((void *)tar_page, 0xFF, PAGE_SIZE);
             ir = 0; ip++;
         }
         Person *res = heap_top(heap);
-        printf("sn: %s, name: %s ip: %d ir: %d \n", res->sn, res->name, ip, ir);
         
         memset((void *)person_buff, 0x00, PAGE_SIZE);
         pack(person_buff, res);
@@ -280,8 +276,6 @@ int main(int argc, char *argv[]) {
             makeSortedFile(outputfp, (char **)&heap);
             break;
         case 'S':
-            // puts("input_file: ");
-            // show(inputfp);
             puts("output_file: ");
             show(outputfp);
             break;
@@ -292,42 +286,4 @@ int main(int argc, char *argv[]) {
     fclose(inputfp);
     fclose(outputfp);
     return 0;
-}
-
-void test_heap() {
-    heap_t *heap = new_heap(16);
-    Person jaq = {
-        .sn = "8811032129018",
-        .name = "Jaq",
-    };
-    Person jacky = {
-        .sn = "9605061234123",
-        .name = "Jacky",
-    };
-    Person mike = {
-        .sn = "9712121020304",
-        .name = "Mike",
-    };
-    Person nancy = {
-        .sn = "8712341235123",
-        .name = "Nancy",
-    };
-    Person bob = {
-        .sn = "9211231234123",
-        .name = "Bob",
-    };
-
-    Person persons[] = {
-        jaq, jacky, mike, nancy, bob,
-    };
-
-    for (int i = 0; i < 5; i++) {
-        heap_push(heap, &persons[i]);
-    }
-
-    while (!heap_empty(heap)) {
-        Person *res = heap_top(heap);
-        printf("sn: %s, name: %s\n", res->sn, res->name);
-        heap_pop(heap);
-    }
 }
