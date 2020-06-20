@@ -144,10 +144,10 @@ void writePage(FILE *fp, const char *pagebuf, int pagenum) {
 // heap의 생성은 Chap9에서 제시한 알고리즘을 따른다. 레코드를 읽을 때 페이지 단위를 사용한다는 것에 주의해야 한다.
 //
 void buildHeap(FILE *inputfp, char **heaparray) {
-	char *meta_page = malloc(PAGE_SIZE);
+    char *meta_page = malloc(PAGE_SIZE);
     char *tar_page  = malloc(PAGE_SIZE);
     readPage(inputfp, meta_page, 0);
-	const int np = *((int *)meta_page);        // 전체 페이지 수
+    const int np = *((int *)meta_page);        // 전체 페이지 수
     const int nr = *((int *)(meta_page + 4));  // 모든 레코드 수 (삭제 포함)
 
     heap_t **heap = (heap_t **)heaparray;
@@ -172,7 +172,7 @@ void buildHeap(FILE *inputfp, char **heaparray) {
         heap_pop(*heap);
     }
 
-	free(meta_page);
+    free(meta_page);
     free(tar_page);
 }
 
