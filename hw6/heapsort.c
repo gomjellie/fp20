@@ -32,12 +32,12 @@ static void person_print(const Person* this) {
 void pack(char *recordbuf, const Person *p) {
     char* rb = recordbuf;
     size_t s;
-    sprintf(rb, p->sn    , s = strlen(p->sn));    rb[s] = delimeter; rb += SN;
-    sprintf(rb, p->name  , s = strlen(p->name));  rb[s] = delimeter; rb += NAME;
-    sprintf(rb, p->age   , s = strlen(p->age));   rb[s] = delimeter; rb += AGE;
-    sprintf(rb, p->addr  , s = strlen(p->addr));  rb[s] = delimeter; rb += ADDR;
-    sprintf(rb, p->phone , s = strlen(p->phone)); rb[s] = delimeter; rb += PHONE;
-    sprintf(rb, p->email , s = strlen(p->email)); rb[s] = delimeter; rb += EMAIL;
+    strncpy(rb, p->sn    , s = strlen(p->sn));    rb[s] = delimeter; rb += SN;
+    strncpy(rb, p->name  , s = strlen(p->name));  rb[s] = delimeter; rb += NAME;
+    strncpy(rb, p->age   , s = strlen(p->age));   rb[s] = delimeter; rb += AGE;
+    strncpy(rb, p->addr  , s = strlen(p->addr));  rb[s] = delimeter; rb += ADDR;
+    strncpy(rb, p->phone , s = strlen(p->phone)); rb[s] = delimeter; rb += PHONE;
+    strncpy(rb, p->email , s = strlen(p->email)); rb[s] = delimeter; rb += EMAIL;
 }
 
 void unpack(const char *recordbuf, Person *p) {
